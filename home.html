@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ホーム - オープンキャンパス</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/env.js" defer></script>
+  <script src="js/auth-check.js" defer></script>
+  <script src="js/home.js" defer></script>
+  <!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#007aff">
+
+<!-- iOS（Safari）対応設定 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="OCアプリ">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+
+  <!-- 1. ユーザー情報 -->
+  <div class="card">
+    <h2 id="userName">読み込み中...</h2>
+    <p id="userSchool">-</p>
+    <p id="userGrade">-</p>
+  </div>
+
+<!-- ポイント表示カード（ポイント部分タップで履歴表示） -->
+<div class="card point-card flex-between">
+  <a href="history.html" class="point-info" style="text-decoration: none; color: inherit;">
+    <div class="point-label">現在の所持ポイント <p style="font-size: 0.75rem; color: #eee;">履歴 ›</p></div>
+    <div class="point-val" id="userPoints">0 PT</div>
+  </a>
+  <a href="qr.html" class="qr-btn" aria-label="QRコードを表示">
+    <svg class="qr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+      <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+      <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+      <rect x="5" y="5" width="3" height="3" fill="currentColor"></rect>
+      <rect x="16" y="5" width="3" height="3" fill="currentColor"></rect>
+      <rect x="5" y="16" width="3" height="3" fill="currentColor"></rect>
+      <path d="M14 14h3v3h-3z" fill="currentColor"></path>
+      <path d="M18 18h3v3h-3z" fill="currentColor"></path>
+      <path d="M14 20h2v1h-2z" fill="currentColor"></path>
+      <path d="M20 14h1v2h-1z" fill="currentColor"></path>
+    </svg>
+  </a>
+</div>
+
+  <!-- 3. 開催イベント（ポイントの下・子ページナビの上） -->
+  <div class="card">
+  <!-- ヘッダー部分：左側にタイトル、右側に最終更新日時枠を配置 -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+    <h3 style="margin: 0; font-size: 1rem; color: #333;">📢 開催イベント</h3>
+    
+    <!-- 💡 ここに JS から 「最終更新: 10/20 13:21」 が自動注入されます -->
+    <span id="lastUpdated" style="font-size: 0.75rem; color: #888;">最終更新: --/-- --:--</span>
+  </div>
+
+  <!-- イベント表示エリア（最大3件・スクロール可能） -->
+  <div id="eventContainer" style="max-height: 210px; overflow-y: auto; padding-right: 4px;">
+    <p style="text-align: center; color: #888; padding: 15px 0; font-size: 0.85rem;">読み込み中...</p>
+  </div>
+</div>
+
+  <!-- 4. 子ページへのナビゲーション -->
+  <div class="nav-grid">
+    <a href="quiz.html" class="nav-btn">クイズ</a>
+    <a href="/" class="nav-btn">ミニゲーム</a>
+    <a href="dept.html" class="nav-btn">学科情報</a>
+    <a href="exchange.html" class="nav-btn">景品交換</a>
+  </div>
+<!-- 💡 お問い合わせ & ログアウト（横並びエリア） -->
+<div style="display: flex; gap: 10px; margin-top: 20px;">
+  <!-- お問い合わせボタン -->
+  <a href="https://www.kcr.ac.jp/contact/" target="_blank" rel="noopener noreferrer" class="contact-btn" style="flex: 1; text-align: center; text-decoration: none; background: #34c759; color: white; padding: 12px 8px; border-radius: 10px; font-weight: bold; font-size: 0.9rem; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">
+    お問い合わせ
+  </a>
+
+  <!-- ログアウトボタン -->
+  <button type="button" class="logout-btn" id="logoutBtn" style="flex: 1; margin-top: 0; padding: 12px 8px; font-size: 0.9rem;">
+    ログアウト
+  </button>
+</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クイズ管理（管理者用）</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/env.js" defer></script>
+  <script src="js/quiz.js" defer></script>
+</head>
+<body class="admin-body">
+  
+  <div class="admin-header">
+    <h2>📝 クイズ一括作成（管理者用）</h2>
+    <a href="index.html" class="nav-link">‹ ダッシュボードへ</a>
+  </div>
+
+  <div class="admin-container">
+    <form id="createFullQuizForm">
+      
+      <!-- ① クイズセット基本情報 -->
+      <div class="card admin-card">
+        <h3>基本情報</h3>
+        <div class="form-group">
+          <label for="deptSelect">対象学科</label>
+          <select id="deptSelect" class="form-control">
+            <option value="PT">理学療法学科 (PT)</option>
+            <option value="OT">作業療法学科 (OT)</option>
+            <option value="Ns">看護学科 (Ns)</option>
+            <option value="CW">介護福祉学科 (CW)</option>
+            <option value="IS">情報処理学科 (IS)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="setTitleInput">セットタイトル</label>
+          <input type="text" id="setTitleInput" class="form-control" placeholder="例: PT体験クイズ①" required>
+        </div>
+      </div>
+
+      <!-- ② 問題 1 ～ 4 の入力欄 -->
+      <div id="questionsContainer">
+        <!-- JSで4問分のフォームを動的に生成します -->
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="margin-top: 10px; padding: 15px; font-size: 1.1rem;">
+        🚀 クイズセットを一括作成する（全4問）
+      </button>
+    </form>
+  </div>
+
+</body>
+</html>

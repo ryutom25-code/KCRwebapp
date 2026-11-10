@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者ダッシュボード</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/env.js" defer></script>
+  <script src="js/dashboard.js" defer></script>
+</head>
+<body class="admin-body">
+
+  <div class="admin-header">
+    <h2>⚙️ 管理者ダッシュボード</h2>
+  </div>
+
+  <div class="admin-container">
+
+    <!-- 📊 クイック統計サマリー -->
+    <div class="admin-card" style="padding: 16px; margin-bottom: 20px;">
+      <h3 style="font-size: 0.95rem; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 6px;">📊 本日のリアルタイム状況</h3>
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; text-align: center;">
+        <div style="background: #f0f7ff; padding: 12px; border-radius: 10px;">
+          <span style="font-size: 0.75rem; color: #555; font-weight: bold;">本日のチェックイン</span>
+          <div id="todayCheckins" style="font-size: 1.6rem; font-weight: bold; color: #007aff; margin-top: 2px;">-- <span style="font-size: 0.8rem;">件</span></div>
+        </div>
+        <div style="background: #fff8f0; padding: 12px; border-radius: 10px;">
+          <span style="font-size: 0.75rem; color: #555; font-weight: bold;">本日の景品交換</span>
+          <div id="todayExchanges" style="font-size: 1.6rem; font-weight: bold; color: #ff9500; margin-top: 2px;">-- <span style="font-size: 0.8rem;">件</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📌 カテゴリ1: イベント・体験管理 -->
+    <div style="margin-bottom: 20px;">
+      <div style="font-size: 0.85rem; font-weight: bold; color: #666; margin-bottom: 8px; padding-left: 4px;">📌 イベント・ブース管理</div>
+      <div class="admin-menu-grid">
+        
+        <a href="checkin.html" class="card admin-menu-card">
+          <div class="menu-icon" style="background: #e5f1ff; border-radius: 8px; padding: 8px;">📍</div>
+          <div class="menu-info">
+            <h3>来校・チェックイン履歴</h3>
+            <p>学科・学校ごとの来校ログ・データ絞り込み・CSV出力</p>
+          </div>
+          <span class="arrow">›</span>
+        </a>
+
+        <a href="qr.html" class="card admin-menu-card">
+          <div class="menu-icon" style="background: #e5f1ff; border-radius: 8px; padding: 8px;">📷</div>
+          <div class="menu-info">
+            <h3>QRコード発行</h3>
+            <p>各学科の来校ポイント＆イベント用QRの生成・印刷</p>
+          </div>
+          <span class="arrow">›</span>
+        </a>
+
+        <a href="event.html" class="card admin-menu-card">
+          <div class="menu-icon" style="background: #e5f1ff; border-radius: 8px; padding: 8px;">📅</div>
+          <div class="menu-info">
+            <h3>イベント管理</h3>
+            <p>来校イベントやスケジュールの登録・編集</p>
+          </div>
+          <span class="arrow">›</span>
+        </a>
+
+        <a href="quiz.html" class="card admin-menu-card">
+          <div class="menu-icon" style="background: #e5f1ff; border-radius: 8px; padding: 8px;">📝</div>
+          <div class="menu-info">
+            <h3>クイズ管理</h3>
+            <p>学科ごとのクイズ問題作成・回答状況管理</p>
+          </div>
+          <span class="arrow">›</span>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- 🎁 カテゴリ2: ポイント・景品管理 -->
+    <div style="margin-bottom: 20px;">
+      <div style="font-size: 0.85rem; font-weight: bold; color: #666; margin-bottom: 8px; padding-left: 4px;">🎁 ポイント・景品管理</div>
+      <div class="admin-menu-grid">
+
+        <a href="exchange.html" class="card admin-menu-card">
+          <div class="menu-icon" style="background: #fff4e5; border-radius: 8px; padding: 8px;">🔄</div>
+          <div class="menu-info">
+            <h3>景品交換履歴</h3>
+            <p>ユーザーの景品交換ログ一覧・CSV出力</p>
+          </div>
+          <span class="arrow">›</span>
+        </a>
+
+        <a href="product.html" class="card admin-menu-card">
+          <div class="menu-icon" style="background: #fff4e5; border-radius: 8px; padding: 8px;">🎁</div>
+          <div class="menu-info">
+            <h3>商品管理</h3>
+            <p>景品登録・ポイント設定</p>
+          </div>
+          <span class="arrow">›</span>
+        </a>
+
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

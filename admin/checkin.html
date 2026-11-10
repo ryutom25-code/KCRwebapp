@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>来校・チェックイン履歴（管理者用）</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/env.js" defer></script>
+  <script src="js/checkin.js" defer></script>
+</head>
+<body class="admin-body">
+
+  <div class="admin-header">
+    <a href="index.html" class="nav-link">‹ ダッシュボードへ</a>
+    <h2>📍 来校・チェックイン履歴</h2>
+  </div>
+
+  <div class="admin-container">
+    
+    <!-- 絞り込みフィルター＆CSV出力カード -->
+    <div class="card admin-card">
+      <h3>🔍 データの絞り込み・並び替え</h3>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 15px;">
+        
+        <!-- 本校の学科フィルター -->
+        <div class="form-group" style="margin: 0;">
+          <label style="font-size: 0.8rem; color: #666;">体験学科</label>
+          <select id="filterDepartment" class="form-control">
+            <option value="">すべての学科</option>
+          </select>
+        </div>
+
+        <!-- ユーザーの出身学校フィルター -->
+        <div class="form-group" style="margin: 0;">
+          <label style="font-size: 0.8rem; color: #666;">出身学校</label>
+          <select id="filterSchool" class="form-control">
+            <option value="">すべての学校</option>
+          </select>
+        </div>
+
+        <!-- 学年フィルター -->
+        <div class="form-group" style="margin: 0;">
+          <label style="font-size: 0.8rem; color: #666;">学年</label>
+          <select id="filterGrade" class="form-control">
+            <option value="">すべての学年</option>
+            <option value="1">1年</option>
+            <option value="2">2年</option>
+            <option value="3">3年</option>
+            <option value="既卒生">既卒生</option>
+          </select>
+        </div>
+
+        <!-- 日時ソート（昇順/降順） -->
+        <div class="form-group" style="margin: 0;">
+          <label style="font-size: 0.8rem; color: #666;">日時順</label>
+          <select id="sortDate" class="form-control">
+            <option value="desc">新しい順 (降順)</option>
+            <option value="asc">古い順 (昇順)</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- ボタンエリア -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding-top: 12px; border-top: 1px solid #eee;">
+        <button type="button" id="resetFilterBtn" class="btn" style="background: #8e8e93; color: white; padding: 8px 16px; font-size: 0.85rem;">フィルター解除</button>
+        <button type="button" id="exportCsvBtn" class="btn" style="background: #34c759; color: white; padding: 8px 20px; font-weight: bold; font-size: 0.9rem;">
+          📥 表示中データをCSV出力
+        </button>
+      </div>
+    </div>
+
+    <!-- 履歴一覧テーブル -->
+    <div class="card admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="margin: 0;">来校ログ一覧</h3>
+        <span id="recordCount" style="font-size: 0.85rem; color: #666; font-weight: bold;">0 件</span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+          <thead>
+            <tr style="background: #f2f2f7; border-bottom: 2px solid #ddd;">
+              <th style="padding: 10px;">日時</th>
+              <th style="padding: 10px;">氏名</th>
+              <th style="padding: 10px;">出身学校</th>
+              <th style="padding: 10px;">学年</th>
+              <th style="padding: 10px;">体験学科/ブース</th>
+            </tr>
+          </thead>
+          <tbody id="checkinTableBody">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 20px; color: #888;">読み込み中...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 💡 ログ編集用モーダル -->
+  <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="background: white; border-radius: 12px; padding: 20px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+      <h3 style="margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 10px;">✏️ チェックインログの編集</h3>
+      
+      <input type="hidden" id="editLogId">
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label style="font-size: 0.8rem; color: #666; display: block; margin-bottom: 4px;">日時</label>
+        <input type="datetime-local" id="editCreatedAt" class="form-control" style="width: 100%; box-sizing: border-box; padding: 8px;">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label style="font-size: 0.8rem; color: #666; display: block; margin-bottom: 4px;">体験学科 / イベントタイトル</label>
+        <input type="text" id="editTitle" class="form-control" style="width: 100%; box-sizing: border-box; padding: 8px;" placeholder="例: 理学療法学科 来校ポイント">
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" onclick="closeEditModal()" class="btn" style="background: #8e8e93; color: white; padding: 8px 16px;">キャンセル</button>
+        <button type="button" onclick="saveLogEdit()" class="btn" style="background: #007aff; color: white; padding: 8px 20px; font-weight: bold;">保存する</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

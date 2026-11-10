@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>来校・イベントQRコード発行ツール</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- QRコード生成ライブラリ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="js/qr.js" defer></script>
+</head>
+<body>
+  <div class="admin-header">
+    <a href="index.html" class="nav-link">‹ ダッシュボードへ</a>
+    <h2>🎯 QRコード生成ツール（管理者用）</h2>
+  </div>
+  <div class="card">
+    <p class="description">ワンタップで各学科の「来校ポイントQR」および「イベントQR」を生成できます。</p>
+    
+    <!-- 1. 学科ごとの来校ポイントQR -->
+    <div style="margin-bottom: 20px;">
+      <label style="font-weight:bold; display:block; margin-bottom:8px;">【学科ごとの来校ポイント】</label>
+      <div class="preset-btns">
+        <button class="preset-btn" data-qr="PT" data-label="理学療法学科 (PT) 来校ポイント">PT</button>
+        <button class="preset-btn" data-qr="OT" data-label="作業療法学科 (OT) 来校ポイント">OT</button>
+        <button class="preset-btn" data-qr="Ns" data-label="看護学科 (Ns) 来校ポイント">Ns</button>
+        <button class="preset-btn" data-qr="CW" data-label="介護福祉学科 (CW) 来校ポイント">CW</button>
+        <button class="preset-btn" data-qr="IS" data-label="情報処理学科 (IS) 来校ポイント">IS</button>
+        <button type="button" class="preset-btn" data-qr="EXCHANGE_BOOTH" data-label="景品交換ブース専用QR" style="background: #ff9500; color: white; border-color: #ff9500;">🎁 交換ブース</button>
+      </div>
+      </div>
+    </div>
+
+    <!-- 3. 任意入力フォーム -->
+    <div class="form-group custom-form-group">
+      <label for="boothInput">または指定文字列を直接入力</label>
+      <div class="input-row">
+        <input type="text" id="boothInput" placeholder="例: イベント">
+        <button type="button" id="customQrBtn" class="btn custom-btn">作成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 生成結果印刷・表示エリア -->
+  <div class="card qr-preview-card" id="resultCard" style="display: none;">
+    <h3 id="boothLabel">-</h3>
+    <p id="boothIdText">-</p>
+    
+    <div id="qrcode"></div>
+
+    <p class="print-note">この画面をスクリーンショットするか印刷して、当日掲示してください。</p>
+    <button type="button" id="printBtn" class="btn btn-success">🖨️ このページを印刷する</button>
+  </div>
+</body>
+</html>

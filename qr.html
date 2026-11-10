@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRコード読み取り</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- カメラ読み取り用ライブラリ -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="js/env.js" defer></script>
+  <script src="js/auth-check.js" defer></script>
+  <script src="js/qr.js" defer></script>
+  <!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#007aff">
+
+<!-- iOS（Safari）対応設定 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="OCアプリ">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+  <div class="header">
+    <a href="home.html" class="back-btn">‹ 戻る</a>
+    <h2>QRコードスキャン</h2>
+  </div>
+
+  <div class="card">
+    <p>会場のQRコードをカメラ枠内にかざしてください。</p>
+    
+    <!-- カメラ映像表示エリア -->
+    <div id="reader" style="width: 100%; max-width: 400px; margin: 10px auto;"></div>
+    
+    <!-- ステータス・結果メッセージ -->
+    <p id="statusMessage" style="text-align: center; margin-top: 15px; font-weight: bold;"></p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>景品交換履歴（管理者用）</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/env.js" defer></script>
+  <script src="js/exchange.js" defer></script>
+</head>
+<body class="admin-body">
+
+  <div class="admin-header">
+    <a href="index.html" class="nav-link">‹ ダッシュボードへ</a>
+    <h2>🎁 景品交換履歴</h2>
+  </div>
+
+  <div class="admin-container">
+    
+    <!-- 絞り込み＆CSV出力カード -->
+    <div class="card admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+        <div class="form-group" style="margin: 0; min-width: 180px;">
+          <label style="font-size: 0.8rem; color: #666;">日時順</label>
+          <select id="sortDate" class="form-control">
+            <option value="desc">新しい順 (降順)</option>
+            <option value="asc">古い順 (昇順)</option>
+          </select>
+        </div>
+
+        <button type="button" id="exportCsvBtn" class="btn" style="background: #34c759; color: white; padding: 10px 20px; font-weight: bold; font-size: 0.9rem;">
+          📥 CSV出力
+        </button>
+      </div>
+    </div>
+
+    <!-- 交換ログ一覧テーブル -->
+    <div class="card admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="margin: 0;">交換ログ一覧</h3>
+        <span id="recordCount" style="font-size: 0.85rem; color: #666; font-weight: bold;">0 件</span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+          <thead>
+            <tr style="background: #f2f2f7; border-bottom: 2px solid #ddd;">
+              <th style="padding: 10px;">日時</th>
+              <th style="padding: 10px;">氏名</th>
+              <th style="padding: 10px;">出身学校</th>
+              <th style="padding: 10px;">交換景品</th>
+              <th style="padding: 10px;">消費PT</th>
+            </tr>
+          </thead>
+          <tbody id="exchangeTableBody">
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 20px; color: #888;">読み込み中...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

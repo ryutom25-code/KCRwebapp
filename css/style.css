@@ -1,0 +1,241 @@
+* {
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background-color: #f4f6f9;
+  margin: 0;
+  padding: 16px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  min-height: 100vh;
+}
+
+/* 画面中央寄せレイアウト（ログイン・登録等） */
+.centered-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* カード型コンテナ */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  width: 100%;
+}
+
+h1 {
+  font-size: 1.5rem;
+  text-align: center;
+  color: #333;
+  margin-top: 0;
+}
+
+h2, h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+/* フォーム共通要素 */
+.form-group {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #fff;
+}
+
+/* ボタン共通要素 */
+.btn {
+  width: 100%;
+  padding: 14px;
+  background: #007aff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.btn-success {
+  background: #28a745;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.link-text {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.9rem;
+}
+
+.link-text a {
+  color: #007aff;
+  text-decoration: none;
+}
+
+/* 共通ヘッダー（サブページ用） */
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.back-btn {
+  text-decoration: none;
+  color: #007aff;
+  font-weight: bold;
+  margin-right: 12px;
+  font-size: 1.1rem;
+}
+
+/* フレックス配置用クラス */
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ポイント表示カード */
+.point-card {
+  background: linear-gradient(135deg, #007aff, #0056b3);
+  color: white;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.point-info {
+  text-align: left;
+}
+
+.point-label {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.point-val {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-top: 4px;
+}
+
+/* ポイント枠内右側の仮想QRコードボタン */
+.qr-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  color: white;
+  text-decoration: none;
+  transition: background-color 0.2s, transform 0.1s;
+  backdrop-filter: blur(4px);
+  flex-shrink: 0;
+}
+
+.qr-btn:active {
+  background-color: rgba(255, 255, 255, 0.35);
+  transform: scale(0.96);
+}
+
+.qr-icon {
+  width: 32px;
+  height: 32px;
+}
+
+/* ナビゲーションボタン一覧 */
+.nav-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.nav-btn {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  text-decoration: none;
+  color: #333;
+  font-weight: bold;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+/* イベントリスト表示 */
+.event-item {
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+}
+
+.event-item:last-child {
+  border-bottom: none;
+}
+
+/* クイズ用選択肢ボタン */
+.option-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  background: #f0f4f8;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+/* ログアウトボタン */
+.logout-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  color: #dc3545;
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* QR表示領域（qr.html用） */
+.qr-box {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+/* 景品リスト用カード（exchange.html用） */
+.item-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}

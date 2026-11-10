@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プロフィール設定 - オープンキャンパス</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/env.js" defer></script>
+  <script src="js/auth-check.js" defer></script>
+  <script src="js/profile.js" defer></script>
+  <!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#007aff">
+
+<!-- iOS（Safari）対応設定 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="OCアプリ">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body class="centered-body">
+  <div class="card">
+    <h1>プロフィール登録</h1>
+    <form id="profileForm">
+      <div class="form-group">
+        <label for="fullName">氏名</label>
+        <input type="text" id="fullName" required placeholder="山田 太郎">
+      </div>
+      <div class="form-group">
+        <label for="schoolName">学校名</label>
+        <input type="text" id="schoolName" required placeholder="〇〇高等学校">
+      </div>
+      <div class="form-group">
+        <label for="grade">学年</label>
+        <select id="grade" required>
+          <option value="">選択してください</option>
+          <option value="1">1年</option>
+          <option value="2">2年</option>
+          <option value="3">3年</option>
+          <option value="既卒生">既卒生</option>
+        </select>
+      </div>
+      <button type="submit" class="btn">登録を完了してホームへ</button>
+    </form>
+  </div>
+</body>
+</html>

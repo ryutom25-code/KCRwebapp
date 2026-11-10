@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学科クイズ</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/env.js" defer></script>
+  <script src="js/auth-check.js" defer></script>
+  <script src="js/quiz.js" defer></script>
+  <!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#007aff">
+
+<!-- iOS（Safari）対応設定 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="OCアプリ">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+  <div class="header">
+    <button type="button" id="backBtn" class="back-btn" style="display: none;">‹ 戻る</button>
+    <a href="home.html" id="homeLink" class="back-btn">‹ ホーム</a>
+    <h2 id="headerTitle">学科クイズ</h2>
+  </div>
+
+  <div class="container" style="padding: 15px;">
+    
+    <!-- STEP 1: 学科選択 -->
+    <div id="step1Dept" class="quiz-step">
+      <p style="margin-bottom: 15px; color: #666; font-size: 0.9rem;">クイズに挑戦したい学科を選択してください。</p>
+      <div class="dept-grid" style="display: grid; gap: 12px;">
+        <button type="button" class="card dept-btn" data-dept="PT">理学療法学科 (PT)</button>
+        <button type="button" class="card dept-btn" data-dept="OT">作業療法学科 (OT)</button>
+        <button type="button" class="card dept-btn" data-dept="Ns">看護学科 (Ns)</button>
+        <button type="button" class="card dept-btn" data-dept="CW">介護福祉学科 (CW)</button>
+        <button type="button" class="card dept-btn" data-dept="IS">情報処理学科 (IS)</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: クイズセット一覧 -->
+    <div id="step2Sets" class="quiz-step" style="display: none;">
+      <p id="deptNameLabel" style="font-weight: bold; margin-bottom: 10px; color: #007aff;"></p>
+      <div id="quizSetList" style="display: grid; gap: 12px;">
+        <!-- JSで動的生成 -->
+      </div>
+    </div>
+
+    <!-- STEP 3: クイズ解答画面 -->
+    <div id="step3Play" class="quiz-step" style="display: none;">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #888; margin-bottom: 8px;">
+          <span id="quizProgressText">第 1 問</span>
+          <span>1問につき 10 PT</span>
+        </div>
+        <h3 id="questionText" style="font-size: 1.1rem; margin-bottom: 20px;">問題文がここに入ります</h3>
+        
+        <div id="optionsContainer" style="display: grid; gap: 10px;">
+          <!-- 4択ボタンがここに挿入される -->
+        </div>
+
+        <div id="resultFeedback" style="margin-top: 15px; font-weight: bold; text-align: center; font-size: 1.1rem;"></div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
