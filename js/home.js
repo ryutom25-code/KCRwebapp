@@ -25,7 +25,6 @@ async function loadUserData() {
     .from('events')
     .select('*')
     .order('updated_at', { ascending: false })
-    .limit(10);
 
   const container = document.getElementById('eventContainer');
   const lastUpdatedEl = document.getElementById('lastUpdated');
