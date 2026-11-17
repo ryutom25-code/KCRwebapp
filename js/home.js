@@ -7,16 +7,18 @@ async function loadUserData() {
   }
 
   // 1. プロフィール情報取得
-  const { data: profile } = await window.supabaseClient
+  const { data: profile, error: profileError } = await window.supabaseClient
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
+  if (profileError) { document.getElementById('userName').textContent = 'プロフィール取得失敗'; return; }
+  if (!profile) { window.location.href = 'profile.html'; return; }
   if (profile) {
     document.getElementById('userName').textContent = profile.name || '名称未設定';
     document.getElementById('userSchool').textContent = '学校: ' + (profile.school_name || '未設定');
-    document.getElementById('userGrade').textContent = '学年: ' + (profile.grade ? profile.grade + '年' : '未設定');
+    document.getElementById('userGrade').textContent = '学年: ' + (profile.grade ? (/^[0-9]+$/.test(String(profile.grade)) ? profile.grade + '年' : profile.grade) : '未設定');
     document.getElementById('userPoints').textContent = (profile.points || 0) + ' PT';
   }
 
@@ -29,6 +31,7 @@ async function loadUserData() {
   const container = document.getElementById('eventContainer');
   const lastUpdatedEl = document.getElementById('lastUpdated');
 
+  if (error) { container.textContent = 'お知らせを取得できませんでした。再読み込みしてください。'; return; }
   if (events && events.length > 0) {
     // 💡 取得したデータの中で一番新しい updated_at をフォーマットして「最終更新日時」に設定
     const latestDate = new Date(events[0].updated_at);
@@ -41,24 +44,9 @@ async function loadUserData() {
       lastUpdatedEl.textContent = `最終更新: ${month}/${day} ${hours}:${minutes}`;
     }
 
-    // イベント一覧の生成
     container.innerHTML = events.map(ev => {
-      const dateParts = ev.event_date.split('-');
-      const dateStr = `${dateParts[0]}/${dateParts[1]}/${dateParts[2]}`;
-
-      return `
-        <div style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="font-weight: bold; font-size: 0.9rem; color: #333; line-height: 1.3;">
-              ${ev.is_new ? '<span style="background: #ff3b30; color: white; font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: bold; margin-right: 6px; vertical-align: middle;">NEW</span>' : ''}
-              ${ev.title}
-            </div>
-          </div>
-          <div style="font-size: 0.78rem; color: #666; margin-top: 4px;">
-            🗓 開催日: ${dateStr}
-          </div>
-        </div>
-      `;
+      const parts = String(ev.event_date || '').split('-');
+      return `<article class="event-row"><div class="date-tile"><small>${App.escapeHtml(parts[1] || '—')}月</small>${App.escapeHtml(parts[2] || '—')}</div><div><h3>${ev.is_new ? '<span class="badge">NEW</span>' : ''}${App.escapeHtml(ev.title)}</h3><p>${App.escapeHtml(ev.event_date || '開催日未定')}</p></div></article>`;
     }).join('');
   } else {
     if (lastUpdatedEl) lastUpdatedEl.textContent = '最終更新: --/-- --:--';

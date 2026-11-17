@@ -1,18 +1,19 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  let retryCount = 0;
-  while (!window.supabaseClient && retryCount < 20) {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    retryCount++;
-  }
-
-  if (!window.supabaseClient) {
-    alert('エラー: Supabaseが初期化されていません。');
-    return;
-  }
+  if (!await App.initAdminPage()) return;
 
   loadProducts();
 
   const form = document.getElementById('productForm');
+  let previewObjectUrl=null;
+  document.getElementById('productImage').addEventListener('change',event=>{
+    if(previewObjectUrl)URL.revokeObjectURL(previewObjectUrl);
+    const file=event.target.files[0];
+    const preview=document.getElementById('imagePreview');
+    const container=document.getElementById('imagePreviewContainer');
+    if(file){previewObjectUrl=URL.createObjectURL(file);preview.src=previewObjectUrl;container.style.display='block';}
+    else{const current=document.getElementById('currentImageUrl').value;preview.src=App.safeImageUrl(current);container.style.display=current?'block':'none';}
+  });
+  document.getElementById('imagePreview').addEventListener('click', event => { if (event.target.src) UI.previewImage(event.target.src, document.getElementById('productName').value); });
   const cancelBtn = document.getElementById('cancelEditBtn');
 
   if (form) form.addEventListener('submit', handleSaveProduct);
@@ -94,30 +95,16 @@ async function loadProducts() {
 
   for (const prod of products) {
     const card = document.createElement('div');
-    card.style.cssText = 'padding: 12px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px;';
+    card.className = 'admin-list-item';
 
-    card.innerHTML = `
-      <img src="${prod.image_url || 'https://via.placeholder.com/80'}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;">
-      <div style="flex: 1;">
-        <div style="font-weight: bold; font-size: 0.95rem; color: #333;">${escapeHtml(prod.name)}</div>
-        <div style="font-size: 0.85rem; color: #ff9500; font-weight: bold; margin-top: 2px;">🪙 必要: ${prod.points} PT</div>
-      </div>
-      <div style="display: flex; gap: 6px;">
-        <button type="button" class="btn-edit" style="padding: 6px 12px; background: #007aff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">編集</button>
-        <button type="button" class="btn-delete" style="padding: 6px 12px; background: #ff3b30; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">削除</button>
-      </div>
-    `;
+    card.innerHTML = `<button type="button" class="product-image-button" aria-label="${App.escapeHtml(prod.name)}の画像を拡大"><img src="${App.escapeHtml(App.safeImageUrl(prod.image_url) || '../icons/campus.svg')}" alt="${App.escapeHtml(prod.name)}" loading="lazy"><span>拡大 ⤢</span></button><div class="item-description"><h3>${App.escapeHtml(prod.name)}</h3><p>${Number(prod.points).toLocaleString()} PT</p></div><div class="item-actions"><button type="button" class="btn-edit">編集</button><button type="button" class="btn-delete">削除</button></div>`;
 
+    card.querySelector('.product-image-button').addEventListener('click', () => UI.previewImage(App.safeImageUrl(prod.image_url) || '../icons/campus.svg', prod.name));
     card.querySelector('.btn-edit').addEventListener('click', () => editProduct(prod));
     card.querySelector('.btn-delete').addEventListener('click', () => deleteProduct(prod.id, prod.name));
 
     listContainer.appendChild(card);
   }
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
 // 保存処理（画像圧縮 ➔ アップロード ➔ DB保存）
@@ -149,7 +136,7 @@ async function handleSaveProduct(e) {
         });
 
       if (uploadError) {
-        alert('画像のアップロードに失敗しました: ' + uploadError.message);
+        App.notify('画像のアップロードに失敗しました: ' + uploadError.message);
         return;
       }
 
@@ -179,14 +166,14 @@ async function handleSaveProduct(e) {
     }
 
     if (error) {
-      alert('保存に失敗しました: ' + error.message);
+      App.notify('保存に失敗しました: ' + error.message);
     } else {
-      alert(id ? '商品を更新しました！' : '商品を登録しました！');
+      App.notify(id ? '商品を更新しました！' : '商品を登録しました！');
       resetForm();
       loadProducts();
     }
   } catch (err) {
-    alert('処理中にエラーが発生しました: ' + err.message);
+    App.notify('処理中にエラーが発生しました: ' + err.message);
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = document.getElementById('productId').value ? '更新する' : '登録する';
@@ -216,14 +203,14 @@ function editProduct(prod) {
 }
 
 async function deleteProduct(id, name) {
-  if (!confirm(`「${name}」を削除してもよろしいですか？`)) return;
+  if (!await App.confirm(`「${name}」を削除してもよろしいですか？`)) return;
 
   const { error } = await window.supabaseClient.from('products').delete().eq('id', id);
 
   if (error) {
-    alert('削除に失敗しました: ' + error.message);
+    App.notify('削除に失敗しました: ' + error.message);
   } else {
-    alert('商品を削除しました。');
+    App.notify('商品を削除しました。');
     loadProducts();
   }
 }

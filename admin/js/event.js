@@ -1,14 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  let retryCount = 0;
-  while (!window.supabaseClient && retryCount < 20) {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    retryCount++;
-  }
-
-  if (!window.supabaseClient) {
-    alert('エラー: Supabaseが初期化されていません。');
-    return;
-  }
+  if (!await App.initAdminPage()) return;
 
   loadEvents();
 
@@ -39,34 +30,25 @@ async function loadEvents() {
     return;
   }
 
-  listContainer.innerHTML = events.map(ev => `
-    <div style="padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <div style="font-weight: bold; font-size: 0.95rem;">
-          ${ev.is_new ? '<span style="background: #ff3b30; color: white; font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; font-weight: bold; margin-right: 5px;">NEW</span>' : ''}
-          ${ev.title}
-        </div>
-        <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
-          🗓 ${ev.event_date}
-        </div>
-      </div>
-      <div style="display: flex; gap: 8px;">
-        <button type="button" onclick="editEvent('${ev.id}', '${escapeHtml(ev.title)}', '${ev.event_date}', ${ev.is_new})" style="padding: 6px 12px; background: #007aff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">編集</button>
-        <button type="button" onclick="deleteEvent('${ev.id}', '${escapeHtml(ev.title)}')" style="padding: 6px 12px; background: #ff3b30; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">削除</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-// エスケープ処理（文字列に引用符等が含まれる場合の対策）
-function escapeHtml(str) {
-  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  listContainer.innerHTML = events.map((ev, index) => `<article class="admin-list-item"><div class="item-description"><h3>${ev.is_new ? '<span class="badge">NEW</span>' : ''}${App.escapeHtml(ev.title)}</h3><p>${App.escapeHtml(ev.event_date)}</p></div><div class="item-actions"><button type="button" class="btn-edit" data-edit-index="${index}">編集</button><button type="button" class="btn-delete" data-delete-index="${index}">削除</button></div></article>`).join('');
+  listContainer.querySelectorAll('[data-edit-index]').forEach(button => button.addEventListener('click', () => {
+    const ev = events[Number(button.dataset.editIndex)];
+    editEvent(ev.id, ev.title, ev.event_date, ev.is_new);
+  }));
+  listContainer.querySelectorAll('[data-delete-index]').forEach(button => button.addEventListener('click', () => {
+    const ev = events[Number(button.dataset.deleteIndex)];
+    deleteEvent(ev.id, ev.title);
+  }));
 }
 
 // イベントの新規保存・更新処理
 async function handleSaveEvent(e) {
   e.preventDefault();
 
+  const saveButton = document.getElementById('saveBtn');
+  if (saveButton.disabled) return;
+  saveButton.disabled = true;
+  try {
   const id = document.getElementById('eventId').value;
   const title = document.getElementById('eventTitle').value.trim();
   const event_date = document.getElementById('eventDate').value;
@@ -92,12 +74,13 @@ async function handleSaveEvent(e) {
   }
 
   if (error) {
-    alert('保存に失敗しました: ' + error.message);
+    App.notify('保存に失敗しました: ' + error.message);
   } else {
-    alert(id ? 'イベントを更新しました！' : 'イベントを作成しました！');
+    App.notify(id ? 'イベントを更新しました！' : 'イベントを作成しました！');
     resetForm();
     loadEvents();
   }
+  } finally { saveButton.disabled = false; }
 }
 
 // 編集モードヘ切り替え
@@ -116,7 +99,7 @@ function editEvent(id, title, event_date, is_new) {
 
 // イベント削除
 async function deleteEvent(id, title) {
-  if (!confirm(`「${title}」を削除してもよろしいですか？`)) return;
+  if (!await App.confirm(`「${title}」を削除してもよろしいですか？`)) return;
 
   const { error } = await window.supabaseClient
     .from('events')
@@ -124,9 +107,9 @@ async function deleteEvent(id, title) {
     .eq('id', id);
 
   if (error) {
-    alert('削除に失敗しました: ' + error.message);
+    App.notify('削除に失敗しました: ' + error.message);
   } else {
-    alert('イベントを削除しました。');
+    App.notify('イベントを削除しました。');
     loadEvents();
   }
 }

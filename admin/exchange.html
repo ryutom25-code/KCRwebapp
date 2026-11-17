@@ -1,68 +1,9 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>景品交換履歴（管理者用）</title>
-  <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="../js/env.js" defer></script>
-  <script src="js/exchange.js" defer></script>
-</head>
-<body class="admin-body">
-
-  <div class="admin-header">
-    <a href="index.html" class="nav-link">‹ ダッシュボードへ</a>
-    <h2>🎁 景品交換履歴</h2>
-  </div>
-
-  <div class="admin-container">
-    
-    <!-- 絞り込み＆CSV出力カード -->
-    <div class="card admin-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px;">
-        <div class="form-group" style="margin: 0; min-width: 180px;">
-          <label style="font-size: 0.8rem; color: #666;">日時順</label>
-          <select id="sortDate" class="form-control">
-            <option value="desc">新しい順 (降順)</option>
-            <option value="asc">古い順 (昇順)</option>
-          </select>
-        </div>
-
-        <button type="button" id="exportCsvBtn" class="btn" style="background: #34c759; color: white; padding: 10px 20px; font-weight: bold; font-size: 0.9rem;">
-          📥 CSV出力
-        </button>
-      </div>
-    </div>
-
-    <!-- 交換ログ一覧テーブル -->
-    <div class="card admin-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 style="margin: 0;">交換ログ一覧</h3>
-        <span id="recordCount" style="font-size: 0.85rem; color: #666; font-weight: bold;">0 件</span>
-      </div>
-
-      <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
-          <thead>
-            <tr style="background: #f2f2f7; border-bottom: 2px solid #ddd;">
-              <th style="padding: 10px;">日時</th>
-              <th style="padding: 10px;">氏名</th>
-              <th style="padding: 10px;">出身学校</th>
-              <th style="padding: 10px;">交換景品</th>
-              <th style="padding: 10px;">消費PT</th>
-            </tr>
-          </thead>
-          <tbody id="exchangeTableBody">
-            <tr>
-              <td colspan="5" style="text-align: center; padding: 20px; color: #888;">読み込み中...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
-
-</body>
-</html>
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#165dff"><meta name="color-scheme" content="light"><title>景品交換履歴 | KCR Campus</title><link rel="icon" href="../icons/campus.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../icons/icon-192.png"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js" defer></script>
+<script src="../js/ui.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="../js/env.js" defer></script>
+<script src="js/exchange.js" defer></script>
+</head><body data-area="admin" data-page="exchange" >
+<a class="skip-link" href="#main">本文へスキップ</a><div id="appNavigation"></div><main id="main" class="main-content" tabindex="-1"><header class="page-heading"><p class="eyebrow">EXCHANGE REPORT</p><h1>景品交換を、ひと目で。</h1><p>交換状況と人気の景品をチェック。履歴はCSVで出力できます。</p></header><div class="stats-grid" id="exchangeSummary"><section class="stat-card"><p>交換件数</p><strong id="exchangeTotal">—</strong><small>全期間の交換履歴</small></section><section class="stat-card mint"><p>交換に使われたポイント</p><strong id="exchangePointsTotal">—</strong><small>全期間の合計</small></section></div><section class="card "><div class="section-heading"><h2>景品交換ランキング</h2></div><p class="muted">全期間の交換件数順。同数は同順位です。</p><div id="exchangeRanking" aria-live="polite"><p class="empty" role="status">読み込み中…</p></div></section><section class="card "><div class="section-heading"><h2>交換ログ一覧</h2></div><div class="toolbar"><div class="form-group"><label for="sortDate">表示順</label><select id="sortDate" name="sortDate"><option value="desc">新しい順</option><option value="asc">古い順</option></select></div><div class="form-group"><label for="exchangeSearch">履歴を検索</label><input id="exchangeSearch" name="exchangeSearch" type="search" placeholder="氏名・学校名・景品名" ></div><button type="button" id="exportCsvBtn" class="btn btn-primary">CSVをダウンロード ↓</button></div><div class="section-heading"><span id="recordCount" class="count-badge">— 件</span><p class="muted">スマホでは表を横にスクロールできます</p></div><div class="table-scroll" tabindex="0" aria-label="一覧表。横にスクロールできます"><table><thead><tr><th scope="col">日時</th><th scope="col">氏名</th><th scope="col">出身学校</th><th scope="col">交換景品</th><th scope="col">消費PT</th></tr></thead><tbody id="exchangeTableBody"><tr><td colspan="5" class="empty">読み込み中…</td></tr></tbody></table></div></section></main><footer class="site-footer">KCR CAMPUS <span>今日の体験を、未来のきっかけに。</span></footer><div id="notifications" class="notifications" role="status" aria-live="polite"></div></body></html>

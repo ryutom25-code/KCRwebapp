@@ -1,55 +1,10 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>来校・イベントQRコード発行ツール</title>
-  <link rel="stylesheet" href="css/style.css">
-  <!-- QRコード生成ライブラリ -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="js/qr.js" defer></script>
-</head>
-<body>
-  <div class="admin-header">
-    <a href="index.html" class="nav-link">‹ ダッシュボードへ</a>
-    <h2>🎯 QRコード生成ツール（管理者用）</h2>
-  </div>
-  <div class="card">
-    <p class="description">ワンタップで各学科の「来校ポイントQR」および「イベントQR」を生成できます。</p>
-    
-    <!-- 1. 学科ごとの来校ポイントQR -->
-    <div style="margin-bottom: 20px;">
-      <label style="font-weight:bold; display:block; margin-bottom:8px;">【学科ごとの来校ポイント】</label>
-      <div class="preset-btns">
-        <button class="preset-btn" data-qr="PT" data-label="理学療法学科 (PT) 来校ポイント">PT</button>
-        <button class="preset-btn" data-qr="OT" data-label="作業療法学科 (OT) 来校ポイント">OT</button>
-        <button class="preset-btn" data-qr="Ns" data-label="看護学科 (Ns) 来校ポイント">Ns</button>
-        <button class="preset-btn" data-qr="CW" data-label="介護福祉学科 (CW) 来校ポイント">CW</button>
-        <button class="preset-btn" data-qr="IS" data-label="情報処理学科 (IS) 来校ポイント">IS</button>
-        <button type="button" class="preset-btn" data-qr="EXCHANGE_BOOTH" data-label="景品交換ブース専用QR" style="background: #ff9500; color: white; border-color: #ff9500;">🎁 交換ブース</button>
-      </div>
-      </div>
-    </div>
-
-    <!-- 3. 任意入力フォーム -->
-    <div class="form-group custom-form-group">
-      <label for="boothInput">または指定文字列を直接入力</label>
-      <div class="input-row">
-        <input type="text" id="boothInput" placeholder="例: イベント">
-        <button type="button" id="customQrBtn" class="btn custom-btn">作成</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 生成結果印刷・表示エリア -->
-  <div class="card qr-preview-card" id="resultCard" style="display: none;">
-    <h3 id="boothLabel">-</h3>
-    <p id="boothIdText">-</p>
-    
-    <div id="qrcode"></div>
-
-    <p class="print-note">この画面をスクリーンショットするか印刷して、当日掲示してください。</p>
-    <button type="button" id="printBtn" class="btn btn-success">🖨️ このページを印刷する</button>
-  </div>
-</body>
-</html>
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#165dff"><meta name="color-scheme" content="light"><title>QRコード発行 | KCR Campus</title><link rel="icon" href="../icons/campus.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../icons/icon-192.png"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js" defer></script>
+<script src="../js/ui.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<script src="../js/env.js" defer></script>
+<script src="js/qr.js" defer></script>
+</head><body data-area="admin" data-page="qr" >
+<a class="skip-link" href="#main">本文へスキップ</a><div id="appNavigation"></div><main id="main" class="main-content" tabindex="-1"><header class="page-heading"><p class="eyebrow">QR GENERATOR</p><h1>体験の入口を、つくろう。</h1><p>学科や景品交換用のQRコードを発行し、会場に掲示できます。</p></header><div class="editor-layout"><section class="card "><div class="section-heading"><h2>発行するQRを選択</h2></div><div class="preset-btns"><button class="preset-btn" type="button" data-qr="PT" data-label="理学療法学科 来校ポイント"><strong>PT</strong><span>理学療法学科</span></button><button class="preset-btn" type="button" data-qr="OT" data-label="作業療法学科 来校ポイント"><strong>OT</strong><span>作業療法学科</span></button><button class="preset-btn" type="button" data-qr="Ns" data-label="看護学科 来校ポイント"><strong>Ns</strong><span>看護学科</span></button><button class="preset-btn" type="button" data-qr="CW" data-label="介護福祉学科 来校ポイント"><strong>CW</strong><span>介護福祉学科</span></button><button class="preset-btn" type="button" data-qr="IS" data-label="情報システム学科 来校ポイント"><strong>IS</strong><span>情報システム学科</span></button><button type="button" class="preset-btn exchange-preset" data-qr="EXCHANGE_BOOTH" data-label="景品交換ブース"><strong>◇</strong><span>景品交換ブース</span></button></div><hr><label for="boothInput">イベント用QRを作成</label><div class="input-row"><input id="boothInput" placeholder="イベント名を入力"><button id="customQrBtn" type="button" class="btn btn-primary">作成</button></div></section><section id="resultCard" class="card qr-preview-card" style="display:none"><span class="eyebrow">READY TO SCAN</span><h2 id="boothLabel"></h2><div id="qrcode"></div><p id="boothIdText" class="muted"></p><p class="hint">印刷して、会場の見やすい場所に掲示してください。</p><button id="printBtn" type="button" class="btn btn-primary btn-block">QRコードを印刷</button></section></div></main><footer class="site-footer">KCR CAMPUS <span>今日の体験を、未来のきっかけに。</span></footer><div id="notifications" class="notifications" role="status" aria-live="polite"></div></body></html>

@@ -8,13 +8,14 @@ async function loadHistoryPage() {
 
   const historyList = document.getElementById('historyList');
 
-  const { data: history, error } = await window.supabaseClient
+  const { data: history, error } = await App.fetchAllResult(() => window.supabaseClient
     .from('point_history')
     .select('*')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }).order('id', { ascending: false }));
 
-  if (error || !history || history.length === 0) {
+  if (error) { historyList.textContent = '履歴を取得できませんでした。再読み込みしてください。'; return; }
+  if (!history || history.length === 0) {
     historyList.innerHTML = '<p style="text-align: center; color: #888; padding: 20px 0;">まだ獲得したポイントはありません。</p>';
     return;
   }
@@ -27,17 +28,8 @@ async function loadHistoryPage() {
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const timeStr = `${month}/${day} ${hours}:${minutes}`;
 
-    return `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #eee;">
-        <div>
-          <div style="font-weight: bold; font-size: 0.95rem; color: #333;">${item.title}</div>
-          <div style="font-size: 0.8rem; color: #888; margin-top: 4px;">${timeStr}</div>
-        </div>
-        <div style="font-weight: bold; font-size: 1.1rem; color: #28a745;">
-          ${item.points} PT
-        </div>
-      </div>
-    `;
+    const amount = Number(item.points) || 0;
+    return `<article class="history-row"><span class="tile-icon" aria-hidden="true">${amount < 0 ? '◇' : '＋'}</span><div class="item-description"><h3>${App.escapeHtml(item.title)}</h3><p>${timeStr}</p></div><strong class="point-amount ${amount < 0 ? 'negative' : ''}">${amount > 0 ? '+' : ''}${amount.toLocaleString()} PT</strong></article>`;
   }).join('');
 }
 

@@ -1,54 +1,9 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>クイズ管理（管理者用）</title>
-  <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="../js/env.js" defer></script>
-  <script src="js/quiz.js" defer></script>
-</head>
-<body class="admin-body">
-  
-  <div class="admin-header">
-    <h2>📝 クイズ一括作成（管理者用）</h2>
-    <a href="index.html" class="nav-link">‹ ダッシュボードへ</a>
-  </div>
-
-  <div class="admin-container">
-    <form id="createFullQuizForm">
-      
-      <!-- ① クイズセット基本情報 -->
-      <div class="card admin-card">
-        <h3>基本情報</h3>
-        <div class="form-group">
-          <label for="deptSelect">対象学科</label>
-          <select id="deptSelect" class="form-control">
-            <option value="PT">理学療法学科 (PT)</option>
-            <option value="OT">作業療法学科 (OT)</option>
-            <option value="Ns">看護学科 (Ns)</option>
-            <option value="CW">介護福祉学科 (CW)</option>
-            <option value="IS">情報処理学科 (IS)</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="setTitleInput">セットタイトル</label>
-          <input type="text" id="setTitleInput" class="form-control" placeholder="例: PT体験クイズ①" required>
-        </div>
-      </div>
-
-      <!-- ② 問題 1 ～ 4 の入力欄 -->
-      <div id="questionsContainer">
-        <!-- JSで4問分のフォームを動的に生成します -->
-      </div>
-
-      <button type="submit" class="btn btn-primary" style="margin-top: 10px; padding: 15px; font-size: 1.1rem;">
-        🚀 クイズセットを一括作成する（全4問）
-      </button>
-    </form>
-  </div>
-
-</body>
-</html>
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#165dff"><meta name="color-scheme" content="light"><title>クイズ管理 | KCR Campus</title><link rel="icon" href="../icons/campus.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../icons/icon-192.png"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js" defer></script>
+<script src="../js/ui.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="../js/env.js" defer></script>
+<script src="js/quiz.js" defer></script>
+</head><body data-area="admin" data-page="quiz" >
+<a class="skip-link" href="#main">本文へスキップ</a><div id="appNavigation"></div><main id="main" class="main-content" tabindex="-1"><header class="page-heading"><p class="eyebrow">QUIZ STUDIO</p><h1 id="quizPageTitle">クイズを管理する。</h1><p id="quizPageDescription">作成済みのクイズを確認・編集できます。新しいセットは「新規作成」から追加してください。</p></header><section id="quizListView" class="card"><div class="quiz-manager-toolbar"><div><h2>作成済みのクイズ</h2><p class="muted">問題文・選択肢・正解を編集できます。</p></div><div class="button-row"><button id="reloadQuizzes" type="button" class="btn btn-secondary">再読み込み</button><button id="newQuizBtn" type="button" class="btn btn-primary" aria-controls="quizCreateView">＋ 新規作成</button></div></div><div id="quizManagementList" aria-live="polite"><p class="empty">読み込み中…</p></div></section><section id="quizCreateView" hidden><div class="quiz-manager-toolbar"><button id="backToQuizList" type="button" class="btn btn-secondary">← 一覧へ戻る</button><span class="muted">新規クイズセット・全4問</span></div><form id="createFullQuizForm"><section class="card "><div class="section-heading"><h2>01 / セットの基本情報</h2></div><div class="filter-grid"><div class="form-group"><label for="deptSelect">対象学科</label><select id="deptSelect" name="deptSelect"><option value="PT">理学療法学科</option><option value="OT">作業療法学科</option><option value="Ns">看護学科</option><option value="CW">介護福祉学科</option><option value="IS">情報システム学科</option></select></div><div class="form-group"><label for="setTitleInput">セットタイトル</label><input id="setTitleInput" name="setTitleInput" type="text" placeholder="例：はじめての学科クイズ" required></div></div></section><div id="questionsContainer" class="question-grid"></div><div class="sticky-actions"><span class="muted">すべての入力内容を確認してください</span><button class="btn btn-primary" type="submit">4問セットを登録する →</button></div></form></section></main><footer class="site-footer">KCR CAMPUS <span>今日の体験を、未来のきっかけに。</span></footer><div id="notifications" class="notifications" role="status" aria-live="polite"></div></body></html>

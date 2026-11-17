@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>Browser regression</title>
+<script src="../js/common.js"></script>
+<script>
+const supabaseInitPromise = Promise.resolve();
+const maliciousName = `Kid's "<img src=x onerror=\"window.injected=true\">" & 景品`;
+const mockProduct = { id: 'p', name: maliciousName, points: 50, image_url: 'javascript:alert(1)' };
+function mockQuery(data) {
+  const query = { then(resolve, reject) { return Promise.resolve({data}).then(resolve,reject); } };
+  for (const method of ['select','eq','single','order']) query[method] = () => query;
+  return query;
+}
+window.supabaseClient = {
+  auth: { getUser: async () => ({data:{user:{id:'u'}}}) },
+  from: table => mockQuery(table === 'profiles' ? {points:100} : [mockProduct])
+};
+window.Html5Qrcode = class {
+  start() { return Promise.resolve(); }
+  stop() { return Promise.resolve(); }
+  clear() {}
+};
+window.alert = message => { throw new Error('Unexpected alert: '+message); };
+</script>
+<script src="../js/exchange.js" defer></script>
+</head><body>
+<div id="currentDate"></div><div id="userPoints"></div><div id="productList"></div>
+<div id="scannerModal" style="display:none"><div id="targetProductName"></div><div id="reader"></div></div>
+<pre id="testResult">RUNNING</pre>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await new Promise(resolve => setTimeout(resolve,0));
+    await loadProfileAndProducts();
+    const list = document.getElementById('productList');
+    if (window.injected) throw new Error('HTML injection executed');
+    if (list.querySelectorAll('img').length !== 1) throw new Error('An injected element was created');
+    if (!list.textContent.includes(maliciousName)) throw new Error('Product text was corrupted');
+    const button = list.querySelector('[data-product-index]');
+    if (button.hasAttribute('onclick')) throw new Error('Inline product handler remains');
+    button.click();
+    if (document.getElementById('targetProductName').textContent !== `「${maliciousName}」（50 PT）`) throw new Error('Product click did not preserve quotes');
+    stopScanner();
+    if (document.getElementById('scannerModal').style.display !== 'none') throw new Error('Scanner did not close');
+    document.getElementById('testResult').textContent = 'PASS: real DOM escaping, apostrophes, product click and scanner close';
+  } catch (error) { document.getElementById('testResult').textContent = 'FAIL: '+error.stack; }
+});
+</script></body></html>

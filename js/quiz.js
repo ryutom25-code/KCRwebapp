@@ -3,7 +3,7 @@ const DEPARTMENT_NAMES = {
   'OT': '作業療法学科',
   'Ns': '看護学科',
   'CW': '介護福祉学科',
-  'IS': '情報処理学科'
+  'IS': '情報システム学科'
 };
 
 let currentUser = null;
@@ -11,6 +11,8 @@ let currentDept = null;
 let currentSet = null;
 let currentQuizzes = [];
 let currentQuizIndex = 0;
+let answerProcessing = false;
+let quizGeneration = 0;
 
 document.addEventListener('DOMContentLoaded', async () => {
   await supabaseInitPromise;
@@ -25,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.dept-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const dept = btn.getAttribute('data-dept');
-      openQuizSets(dept);
+      openQuizSets(dept).catch(error => App.notify(error.message));
     });
   });
 
@@ -58,11 +60,13 @@ function showStep(stepNumber) {
 }
 
 function handleBack() {
+  if (answerProcessing) return;
+  quizGeneration++;
   const step3 = document.getElementById('step3Play');
   const step2 = document.getElementById('step2Sets');
   
   if (step3.style.display !== 'none') {
-    openQuizSets(currentDept); // STEP 3 -> STEP 2
+    openQuizSets(currentDept).catch(error => App.notify(error.message)); // STEP 3 -> STEP 2
   } else if (step2.style.display !== 'none') {
     showStep(1); // STEP 2 -> STEP 1
   }
@@ -70,42 +74,50 @@ function handleBack() {
 
 // STEP 2: クイズセット一覧取得＆残問題数計算
 async function openQuizSets(dept) {
+  if (answerProcessing) return;
+  const generation = ++quizGeneration;
   currentDept = dept;
   const container = document.getElementById('quizSetList');
   document.getElementById('deptNameLabel').textContent = `【${DEPARTMENT_NAMES[dept]}】のクイズセット`;
-  container.innerHTML = '<p style="text-align: center; color: #888;">読み込み中...</p>';
+  container.innerHTML = '<p>読み込み中...</p>';
 
   showStep(2);
 
   // 1. クイズセット一覧取得
-  const { data: sets } = await window.supabaseClient
+  const { data: sets, error: setsError } = await App.fetchAllResult(() => window.supabaseClient
     .from('quiz_sets')
     .select('*')
     .eq('department', dept)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true }).order('id'));
 
+  if (generation !== quizGeneration) return;
+  if (setsError) { container.textContent = 'クイズ一覧を取得できませんでした。'; return; }
   if (!sets || sets.length === 0) {
-    container.innerHTML = '<p style="text-align: center; color: #888; padding: 20px 0;">現在用意されているクイズはありません。</p>';
+    container.innerHTML = '<p>現在用意されているクイズはありません。</p>';
     return;
   }
 
   // 2. 自分の【正解済み（is_correct = true）】履歴だけを取得
-  const { data: userAnswers } = await window.supabaseClient
+  const { data: userAnswers, error: answersError } = await App.fetchAllResult(() => window.supabaseClient
     .from('quiz_answers')
     .select('quiz_id')
     .eq('user_id', currentUser.id)
-    .eq('is_correct', true);
+    .eq('is_correct', true).order('id'));
 
-  const clearedQuizIds = new Set(userAnswers ? userAnswers.map(a => a.quiz_id) : []);
+  if (generation !== quizGeneration) return;
+  if (answersError) throw new Error('正解済みの問題を取得できませんでした。');
+  const clearedQuizIds = new Set(userAnswers.map(a => a.quiz_id));
 
   // 3. 各セット内の全問題数を取得してHTML生成
   let html = '';
   for (const set of sets) {
-    const { data: quizzes } = await window.supabaseClient
+    const { data: quizzes, error: questionsError } = await App.fetchAllResult(() => window.supabaseClient
       .from('quizzes')
       .select('id')
-      .eq('set_id', set.id);
+      .eq('set_id', set.id).order('id'));
 
+    if (generation !== quizGeneration) return;
+    if (questionsError) { container.textContent = '問題一覧を取得できませんでした。'; return; }
     const totalCount = quizzes ? quizzes.length : 0;
     // 正解済みの問題数
     const clearedCount = quizzes ? quizzes.filter(q => clearedQuizIds.has(q.id)).length : 0;
@@ -115,63 +127,74 @@ async function openQuizSets(dept) {
     if (isCompleted) {
       // 全問正解クリア済み（完了状態）
       html += `
-        <div class="card" style="background: #f0f0f0; border-color: #ccc; opacity: 0.7; cursor: not-allowed;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="card completed-quiz">
+          <div>
             <div>
-              <strong style="color: #666;">${set.title}</strong>
-              <div style="font-size: 0.8rem; color: #888; margin-top: 4px;">全 ${totalCount} 問クリア済み</div>
+              <strong>${App.escapeHtml(set.title)}</strong>
+              <div>全 ${totalCount} 問クリア済み</div>
             </div>
-            <span style="background: #28a745; color: white; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; font-weight: bold;">CLEAR</span>
+            <span>CLEAR</span>
           </div>
         </div>
       `;
     } else {
       // 未クリア問題あり（挑戦可能）
       html += `
-        <div class="card quiz-set-card" onclick="startQuizSet('${set.id}', '${set.title}')" style="cursor: pointer;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="card quiz-set-card" data-set-index="${sets.indexOf(set)}">
+          <div>
             <div>
-              <strong style="color: #333; font-size: 1rem;">${set.title}</strong>
-              <div style="font-size: 0.8rem; color: #007aff; margin-top: 4px;">未クリア ${remainingCount} 問 / 全 ${totalCount} 問</div>
+              <strong>${App.escapeHtml(set.title)}</strong>
+              <div>未クリア ${remainingCount} 問 / 全 ${totalCount} 問</div>
             </div>
-            <span style="font-size: 1.2rem; color: #007aff;">挑戦 ›</span>
+            <span>挑戦 ›</span>
           </div>
-        </div>
+        </button>
       `;
     }
   }
 
   container.innerHTML = html;
+  container.querySelectorAll('[data-set-index]').forEach(card => {
+    card.addEventListener('click', () => {
+      const set = sets[Number(card.dataset.setIndex)];
+      startQuizSet(set.id, set.title).catch(error => App.notify(error.message));
+    });
+  });
 }
 
 // STEP 3: クイズスタート
 async function startQuizSet(setId, title) {
-  currentSet = { id: setId, title: title };
+  if (answerProcessing) return;
+  const generation = ++quizGeneration;
 
   // 全問題を取得
-  const { data: quizzes } = await window.supabaseClient
+  const { data: quizzes, error: quizError } = await App.fetchAllResult(() => window.supabaseClient
     .from('quizzes')
-    .select('*')
+    .select('id, set_id, question, options, points')
     .eq('set_id', setId)
-    .order('id', { ascending: true });
+    .order('id', { ascending: true }));
 
   // 自分の【正解済み】問題IDを取得
-  const { data: userAnswers } = await window.supabaseClient
+  const { data: userAnswers, error: answersError } = await App.fetchAllResult(() => window.supabaseClient
     .from('quiz_answers')
     .select('quiz_id')
     .eq('user_id', currentUser.id)
     .eq('set_id', setId)
-    .eq('is_correct', true);
+    .eq('is_correct', true).order('id'));
 
-  const clearedQuizIds = new Set(userAnswers ? userAnswers.map(a => a.quiz_id) : []);
+  if (generation !== quizGeneration) return;
+  if (answersError) throw new Error('正解済みの問題を取得できませんでした。');
+  const clearedQuizIds = new Set(userAnswers.map(a => a.quiz_id));
 
   // 未正解（まだクリアしていない）問題だけに絞り込む
+  if (quizError || !quizzes) throw quizError || new Error('問題を取得できませんでした。');
+  currentSet = { id: setId, title: title };
   currentQuizzes = quizzes.filter(q => !clearedQuizIds.has(q.id));
   currentQuizIndex = 0;
 
   if (currentQuizzes.length === 0) {
-    alert('このクイズセットはすべてクリア済みです！');
-    openQuizSets(currentDept);
+    App.notify('このクイズセットはすべてクリア済みです！');
+    openQuizSets(currentDept).catch(error => App.notify(error.message));
     return;
   }
 
@@ -186,8 +209,8 @@ function renderQuizQuestion() {
 
   if (currentQuizIndex >= currentQuizzes.length) {
     // 未クリア分を全問正解 -> セット一覧に戻る
-    alert('🎉 おめでとうございます！未クリア問題をすべてクリアしました！');
-    openQuizSets(currentDept);
+    App.notify('🎉 おめでとうございます！未クリア問題をすべてクリアしました！');
+    openQuizSets(currentDept).catch(error => App.notify(error.message));
     return;
   }
 
@@ -197,65 +220,41 @@ function renderQuizQuestion() {
 
   const container = document.getElementById('optionsContainer');
   container.innerHTML = q.options.map((optText, idx) => `
-    <button type="button" class="btn option-btn" onclick="submitAnswer(${idx})" style="width: 100%; text-align: left; padding: 12px 15px; background: #f8f9fa; border: 1px solid #ddd; color: #333; border-radius: 8px;">
-      ${idx + 1}. ${optText}
+    <button type="button" class="btn option-btn" onclick="submitAnswer(${idx})">
+      ${idx + 1}. ${App.escapeHtml(optText)}
     </button>
   `).join('');
 }
 
-// 解答判定＆ポイント付与
+// The correct answer and awarded amount are verified on the server.
 async function submitAnswer(selectedIndex) {
+  if (answerProcessing) return;
+  answerProcessing = true;
+  const generation = quizGeneration;
   const q = currentQuizzes[currentQuizIndex];
-  const isCorrect = (selectedIndex === q.correct_index);
   const feedback = document.getElementById('resultFeedback');
-
-  // ボタンを一時無効化（連打防止）
   document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
-
-  if (isCorrect) {
-    feedback.style.color = '#28a745';
-    feedback.textContent = '🎉 正解！ (+10 PT獲得)';
-
-    // 1. quiz_answers に正解として記録（次回からスキップされる）
-    await window.supabaseClient.from('quiz_answers').insert({
-      user_id: currentUser.id,
-      set_id: currentSet.id,
-      quiz_id: q.id,
-      is_correct: true
-    });
-
-    // 2. profiles ポイント加算
-    const { data: profile } = await window.supabaseClient
-      .from('profiles')
-      .select('points')
-      .eq('id', currentUser.id)
-      .single();
-
-    const newPoints = (profile?.points || 0) + 10;
-    await window.supabaseClient.from('profiles').update({ points: newPoints }).eq('id', currentUser.id);
-
-    // 3. point_history 記録
-    await window.supabaseClient.from('point_history').insert({
-      user_id: currentUser.id,
-      title: `${DEPARTMENT_NAMES[currentDept]} クイズ正解`,
-      category: 'quiz',
-      points: 10
-    });
-
-    // 1.5秒後に次の問題へ進む
+  try {
+    const result = await App.rpc('answer_quiz', { p_quiz_id: String(q.id), p_selected_index: selectedIndex });
+    feedback.style.color = result.isCorrect ? '#28a745' : '#dc3545';
+    feedback.textContent = result.isCorrect
+      ? (result.alreadyAnswered ? 'この問題は正解済みです。' : `🎉 正解！ (+${result.earnedPoints} PT獲得)`)
+      : '❌ 不正解... もう一度挑戦してみよう！';
     setTimeout(() => {
-      currentQuizIndex++;
-      renderQuizQuestion();
+      answerProcessing = false;
+      if (generation !== quizGeneration) return;
+      if (result.isCorrect) {
+        currentQuizIndex++;
+        renderQuizQuestion();
+      } else {
+        feedback.textContent = '';
+        document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = false);
+      }
     }, 1500);
-
-  } else {
+  } catch (error) {
+    answerProcessing = false;
     feedback.style.color = '#dc3545';
-    feedback.textContent = '❌ 不正解... もう一度挑戦してみよう！';
-
-    // 💡 不正解の時は DB に保存せず、1.5秒後に選択肢のロックを解除して再挑戦させる
-    setTimeout(() => {
-      feedback.textContent = '';
-      document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = false);
-    }, 1500);
+    feedback.textContent = '保存できませんでした: ' + error.message;
+    document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = false);
   }
 }

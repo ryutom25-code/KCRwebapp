@@ -1,40 +1,11 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QRコード読み取り</title>
-  <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- カメラ読み取り用ライブラリ -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <script src="js/env.js" defer></script>
-  <script src="js/auth-check.js" defer></script>
-  <script src="js/qr.js" defer></script>
-  <!-- PWA Manifest -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#007aff">
-
-<!-- iOS（Safari）対応設定 -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="OCアプリ">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-</head>
-<body>
-  <div class="header">
-    <a href="home.html" class="back-btn">‹ 戻る</a>
-    <h2>QRコードスキャン</h2>
-  </div>
-
-  <div class="card">
-    <p>会場のQRコードをカメラ枠内にかざしてください。</p>
-    
-    <!-- カメラ映像表示エリア -->
-    <div id="reader" style="width: 100%; max-width: 400px; margin: 10px auto;"></div>
-    
-    <!-- ステータス・結果メッセージ -->
-    <p id="statusMessage" style="text-align: center; margin-top: 15px; font-weight: bold;"></p>
-  </div>
-</body>
-</html>
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#165dff"><meta name="color-scheme" content="light"><title>チェックイン | KCR Campus</title><link rel="icon" href="icons/campus.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="css/style.css">
+<script src="js/common.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
+<script src="js/env.js" defer></script>
+<script src="js/auth-check.js" defer></script>
+<script src="js/qr.js" defer></script>
+</head><body data-area="campus" data-page="qr" >
+<a class="skip-link" href="#main">本文へスキップ</a><div id="appNavigation"></div><main id="main" class="main-content" tabindex="-1"><header class="page-heading"><p class="eyebrow">CHECK IN</p><h1>体験を、ポイントに。</h1><p>会場に設置されているQRコードを読み取ってください。</p></header><div class="narrow"><section class="card "><div class="section-heading"><h2>QRコードをスキャン</h2></div><div class="scanner-intro"><span class="scan-symbol">⌗</span><p>カメラへのアクセスを許可し、<br>QRコードを枠の中に合わせてください。</p></div><div id="reader" class="scanner"></div><p id="statusMessage" class="scan-status" role="status" aria-live="polite"></p></section><p class="hint">学科のポイント獲得は、同じ学科につき60分に1回です。別の学科には続けてチェックインできます。景品交換のQRコードは景品交換画面から読み取れます。</p></div></main><footer class="site-footer">KCR CAMPUS <span>今日の体験を、未来のきっかけに。</span></footer><div id="notifications" class="notifications" role="status" aria-live="polite"></div></body></html>

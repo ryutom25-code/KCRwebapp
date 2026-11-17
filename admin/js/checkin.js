@@ -1,3 +1,5 @@
+let checkinLoadGeneration = 0;
+let editTrigger = null;
 let currentFilteredData = []; // 現在画面に表示されている抽出データを保持
 
 // 💡 booth_id (略称コード) と 表示名の対応表
@@ -11,19 +13,11 @@ const BOOTH_NAMES = {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  let retryCount = 0;
-  while (!window.supabaseClient && retryCount < 20) {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    retryCount++;
-  }
-
-  if (!window.supabaseClient) {
-    alert('エラー: Supabaseが初期化されていません。');
-    return;
-  }
+  if (!await App.initAdminPage()) return;
 
   // 1. フィルターの選択肢をセット
-  await initFilterOptions();
+  try { await initFilterOptions(); }
+  catch (error) { App.notify('フィルターを取得できません: ' + error.message); }
 
   // 2. checkins からログデータの読み込み
   await loadCheckinLogs();
@@ -41,10 +35,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 // データベースから実際に存在する booth_id・学校名・学年を抽出してプルダウンにセット
 async function initFilterOptions() {
   // 1. checkins から booth_id を抽出してプルダウンを作成
-  const { data: logs } = await window.supabaseClient
+  const { data: logs, error: logsError } = await App.fetchAllResult(() => window.supabaseClient
     .from('checkins')
-    .select('booth_id');
+    .select('booth_id').order('id'));
 
+  if (logsError) throw logsError;
   if (logs) {
     const boothIds = [...new Set(logs.map(l => l.booth_id).filter(Boolean))];
     const deptSelect = document.getElementById('filterDepartment');
@@ -59,10 +54,11 @@ async function initFilterOptions() {
   }
 
   // 2. profiles から出身学校名および学年を抽出
-  const { data: profiles } = await window.supabaseClient
+  const { data: profiles, error: profilesError } = await App.fetchAllResult(() => window.supabaseClient
     .from('profiles')
-    .select('school_name, grade');
+    .select('school_name, grade').order('id'));
 
+  if (profilesError) throw profilesError;
   if (profiles) {
     // 学校名プルダウンの生成
     const schools = [...new Set(profiles.map(p => p.school_name).filter(Boolean))];
@@ -92,53 +88,54 @@ async function initFilterOptions() {
 
 // データの読み込み＆結合処理
 async function loadCheckinLogs() {
+  const generation = ++checkinLoadGeneration;
   const deptVal = document.getElementById('filterDepartment').value; // IS, PT 等のコード
   const schoolVal = document.getElementById('filterSchool').value;
   const gradeVal = document.getElementById('filterGrade').value;
   const sortVal = document.getElementById('sortDate').value;
 
   // 1. checkins テーブルから取得
-  let query = window.supabaseClient
-    .from('checkins')
-    .select('*')
-    .order('created_at', { ascending: sortVal === 'asc' });
+  const makeQuery = () => {
+    let query = window.supabaseClient
+      .from('checkins')
+      .select('*')
+      .order('created_at', { ascending: sortVal === 'asc' }).order('id', { ascending: sortVal === 'asc' });
 
-  if (deptVal) query = query.eq('booth_id', deptVal);
+    if (deptVal) query = query.eq('booth_id', deptVal);
 
-  const { data: checkins, error: checkinError } = await query;
+    return query;
+  };
+  currentFilteredData = [];
+  const { data: checkins, error: checkinError } = await App.fetchAllResult(makeQuery);
 
+  if (generation !== checkinLoadGeneration) return;
   const tbody = document.getElementById('checkinTableBody');
   const countEl = document.getElementById('recordCount');
 
   if (checkinError || !checkins) {
+    countEl.textContent = '取得失敗';
     console.error('checkins 取得エラー:', checkinError);
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red; padding: 20px;">データの読み込みに失敗しました。</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">データの読み込みに失敗しました。</td></tr>';
     return;
   }
 
   if (checkins.length === 0) {
     currentFilteredData = [];
     countEl.textContent = '0 件';
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #888; padding: 20px;">該当するデータはありません。</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">該当するデータはありません。</td></tr>';
     return;
   }
 
-  // 2. 登場する user_id のプロフィールを一括取得
-  const userIds = [...new Set(checkins.map(c => c.user_id).filter(Boolean))];
-  let profileMap = {};
-
-  if (userIds.length > 0) {
-    const { data: profiles, error: profileError } = await window.supabaseClient
-      .from('profiles')
-      .select('*')
-      .in('id', userIds);
-
-    if (!profileError && profiles) {
-      profiles.forEach(p => {
-        profileMap[String(p.id)] = p;
-      });
-    }
+  // Fetch every profile page; avoid a large IN URL and capped joins.
+  const { data: profiles, error: profileError } = await App.fetchAllResult(() =>
+    window.supabaseClient.from('profiles').select('*').order('id'));
+  if (generation !== checkinLoadGeneration) return;
+  if (profileError) {
+    countEl.textContent = '取得失敗';
+    tbody.textContent = 'プロフィールの読み込みに失敗しました。';
+    return;
   }
+  const profileMap = Object.fromEntries(profiles.map(profile => [String(profile.id), profile]));
 
   // 3. checkins と profiles をマージ
   let mergedLogs = checkins.map(c => ({
@@ -159,7 +156,7 @@ async function loadCheckinLogs() {
   countEl.textContent = `${currentFilteredData.length} 件`;
 
   if (currentFilteredData.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #888; padding: 20px;">該当するデータはありません。</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">該当するデータはありません。</td></tr>';
     return;
   }
 
@@ -172,21 +169,21 @@ async function loadCheckinLogs() {
     const rawName = prof.name || prof.user_name || prof.full_name;
     const deptName = BOOTH_NAMES[log.booth_id] || log.booth_id;
 
-    const nameStr = rawName ? escapeHtml(rawName) : '<span style="color: #999;">未設定</span>';
-    const schoolStr = prof.school_name ? escapeHtml(prof.school_name) : '<span style="color: #999;">未設定</span>';
-    const gradeStr = (prof.grade !== null && prof.grade !== undefined && prof.grade !== '') ? `${prof.grade}年` : '<span style="color: #999;">未設定</span>';
-    const deptStr = deptName ? escapeHtml(deptName) : '<span style="color: #999;">未設定</span>';
+    const nameStr = rawName ? App.escapeHtml(rawName) : '<span>未設定</span>';
+    const schoolStr = prof.school_name ? App.escapeHtml(prof.school_name) : '<span>未設定</span>';
+    const gradeStr = (prof.grade !== null && prof.grade !== undefined && prof.grade !== '') ? `${App.escapeHtml(prof.grade)}${/^[0-9]+$/.test(String(prof.grade)) ? '年' : ''}` : '<span>未設定</span>';
+    const deptStr = deptName ? App.escapeHtml(deptName) : '<span>未設定</span>';
 
     return `
-      <tr style="border-bottom: 1px solid #eee;">
-        <td style="padding: 10px; color: #555; white-space: nowrap;">${dateStr}</td>
-        <td style="padding: 10px; font-weight: bold; color: #333; white-space: nowrap;">${nameStr}</td>
-        <td style="padding: 10px; white-space: nowrap;">${schoolStr}</td>
-        <td style="padding: 10px; white-space: nowrap;">${gradeStr}</td>
-        <td style="padding: 10px; font-weight: bold; color: #007aff; white-space: nowrap;">${deptStr}</td>
-        <td style="padding: 10px; text-align: center; white-space: nowrap; width: 110px;">
-          <button type="button" onclick="openEditModal('${log.id}')" class="btn" style="background: #ff9500; color: white; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; margin-right: 2px;">編集</button>
-          <button type="button" onclick="deleteLog('${log.id}')" class="btn" style="background: #ff3b30; color: white; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px;">削除</button>
+      <tr>
+        <td>${dateStr}</td>
+        <td>${nameStr}</td>
+        <td>${schoolStr}</td>
+        <td>${gradeStr}</td>
+        <td>${deptStr}</td>
+        <td>
+          <button type="button" onclick="openEditModal('${log.id}')" class="btn">編集</button>
+          <button type="button" onclick="deleteLog('${log.id}')" class="btn">削除</button>
         </td>
       </tr>
     `;
@@ -195,9 +192,10 @@ async function loadCheckinLogs() {
 
 // 編集モーダルを開く
 window.openEditModal = function(logId) {
-  const targetLog = currentFilteredData.find(item => item.id === logId);
+  const targetLog = currentFilteredData.find(item => String(item.id) === String(logId));
   if (!targetLog) return;
 
+  editTrigger = document.activeElement;
   document.getElementById('editLogId').value = targetLog.id;
   
   const dt = new Date(targetLog.created_at);
@@ -208,13 +206,14 @@ window.openEditModal = function(logId) {
   document.getElementById('editTitle').value = targetLog.booth_id || '';
 
   const modal = document.getElementById('editModal');
-  if (modal) modal.style.display = 'flex';
+  if (modal) { modal.style.display = 'flex'; document.getElementById('editCreatedAt').focus(); }
 };
 
 // 編集モーダルを閉じる
 window.closeEditModal = function() {
   const modal = document.getElementById('editModal');
   if (modal) modal.style.display = 'none';
+  editTrigger?.focus?.();
 };
 
 // 編集内容の保存
@@ -224,7 +223,7 @@ window.saveLogEdit = async function() {
   const boothIdVal = document.getElementById('editTitle').value.trim();
 
   if (!createdAtVal) {
-    alert('日時を正しく入力してください。');
+    App.notify('日時を正しく入力してください。');
     return;
   }
 
@@ -237,18 +236,18 @@ window.saveLogEdit = async function() {
     .eq('id', logId);
 
   if (error) {
-    alert('更新に失敗しました: ' + error.message);
+    App.notify('更新に失敗しました: ' + error.message);
     return;
   }
 
-  alert('チェックインログを更新しました！');
+  App.notify('チェックインログを更新しました！');
   closeEditModal();
   await loadCheckinLogs();
 };
 
 // ログ削除
 window.deleteLog = async function(logId) {
-  if (!confirm('このチェックイン履歴を削除してもよろしいですか？\n※削除したデータは復元できません。')) {
+  if (!await App.confirm('このチェックイン履歴を削除してもよろしいですか？\n※削除したデータは復元できません。')) {
     return;
   }
 
@@ -258,11 +257,11 @@ window.deleteLog = async function(logId) {
     .eq('id', logId);
 
   if (error) {
-    alert('削除に失敗しました: ' + error.message);
+    App.notify('削除に失敗しました: ' + error.message);
     return;
   }
 
-  alert('ログを削除しました。');
+  App.notify('ログを削除しました。');
   await loadCheckinLogs();
 };
 
@@ -278,7 +277,7 @@ async function resetFilters() {
 // CSV出力
 function exportToCsv() {
   if (!currentFilteredData || currentFilteredData.length === 0) {
-    alert('出力対象のデータがありません。');
+    App.notify('出力対象のデータがありません。');
     return;
   }
 
@@ -291,13 +290,9 @@ function exportToCsv() {
     const rawName = prof.name || prof.user_name || prof.full_name;
     const deptName = BOOTH_NAMES[log.booth_id] || log.booth_id || '未設定';
 
-    return [
-      `"${dateStr}"`,
-      `"${(rawName || '未設定').replace(/"/g, '""')}"`,
-      `"${(prof.school_name || '未設定').replace(/"/g, '""')}"`,
-      `"${(prof.grade !== null && prof.grade !== undefined && prof.grade !== '') ? prof.grade + '年' : '未設定'}"`,
-      `"${deptName.replace(/"/g, '""')}"`,
-    ].join(',');
+    return [dateStr, rawName || '未設定', prof.school_name || '未設定',
+      (prof.grade !== null && prof.grade !== undefined && prof.grade !== '') ? prof.grade + '年' : '未設定',
+      deptName].map(App.csvCell).join(',');
   });
 
   const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
@@ -312,9 +307,5 @@ function exportToCsv() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  URL.revokeObjectURL(url);
 }
