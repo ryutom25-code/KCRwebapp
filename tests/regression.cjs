@@ -241,6 +241,21 @@ function query(result) {
   await assert.rejects(t.run("handleScanSuccess({id:'u'}, 'https://unrelated.test')"), /未登録QR/);
   await assert.rejects(t.run("handleScanSuccess({id:'u'}, 'EXCHANGE_BOOTH')"), /景品交換用/);
 
+  // Newly generated event QR codes register the same 50 points as the migration.
+  t = context(['admin/js/qr.js']);
+  const issuedCodes = [];
+  t.ctx.supabaseClient = { from(table) {
+    assert.equal(table, 'qr_codes');
+    return { upsert(record) { issuedCodes.push(record); return Promise.resolve({ error: null }); } };
+  } };
+  t.ctx.QRCode = class { static CorrectLevel = { H: 1 }; };
+  await t.documentEvents.get('DOMContentLoaded')();
+  t.elements.get('boothInput').value = '公開イベント';
+  t.elements.get('customQrBtn').listeners.click();
+  assert.equal(issuedCodes[0].code, 'event:公開イベント');
+  assert.equal(issuedCodes[0].category, 'event');
+  assert.equal(issuedCodes[0].points, 50);
+
   // A camera facing the same department should not hammer the API during cooldown.
   t = context(['js/qr-camera.js', 'js/qr.js']);
   let scanCalls = 0;

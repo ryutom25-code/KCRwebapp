@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { error } = await window.supabaseClient.from('qr_codes').upsert({
           code: qrDataStr, category: event ? 'event' : 'welcome',
           department_name: event ? qrDataStr.slice(6) : names[target],
-          points: event ? 30 : 50, active: true
+          points: 50, active: true
         }, { onConflict: 'code' });
         if (error) throw error;
       }

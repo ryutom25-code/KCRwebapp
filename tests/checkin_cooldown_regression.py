@@ -9,7 +9,7 @@ def run_suite(dsn):
  with psycopg.connect(dsn,autocommit=True)as owner:
   assert owner.execute("select to_regclass('public.profiles')").fetchone()[0]is None,'Empty test DB required'
   owner.execute((ROOT/'tests/database_fixture.sql').read_text().replace('__OPTIONS_TYPE__','jsonb'))
-  for name in ['202611170004_runtime_and_quiz_management.sql','202611170005_department_checkin_cooldown.sql']:
+  for name in ['202611170004_runtime_and_quiz_management.sql','202611170005_department_checkin_cooldown.sql','202611240004_event_qr_points.sql']:
    owner.execute((ROOT/'supabase/migrations'/name).read_text())
   for user in [USER,OTHER]:
    owner.execute('insert into auth.users(id)values(%s)',(user,));owner.execute("insert into profiles(id,name,points)values(%s,'test',0)",(user,))
@@ -32,18 +32,18 @@ def run_suite(dsn):
   assert scan('welcome:PT')['earnedPoints']==50 and points()==150
   owner.execute("delete from checkins where user_id=%s and booth_id in('PT','welcome:PT')",(USER,))
   assert scan('PT')['cooldown']  # deleting the visit log does not reset award history
-  assert scan('event:main')['earnedPoints']==30 and scan('event:main')['earnedPoints']==30
-  assert points()==210
+  assert scan('event:main')['earnedPoints']==50 and scan('event:main')['earnedPoints']==50
+  assert points()==250
   with ThreadPoolExecutor(max_workers=8)as pool:results=list(pool.map(lambda _:scan('IS'),range(8)))
-  assert sum(r['earnedPoints']for r in results)==50 and points()==260
+  assert sum(r['earnedPoints']for r in results)==50 and points()==300
   assert sum(bool(r['cooldown'])for r in results)==7
   owner.execute("create function fail_award()returns trigger language plpgsql as $$begin raise exception 'test';end$$;create trigger fail_award before insert on point_history for each row execute function fail_award()")
   key=uuid.uuid4()
   try:scan('CW',key=key);raise AssertionError('expected failure')
   except psycopg.Error:pass
-  assert points()==260
+  assert points()==300
   assert owner.execute("select count(*)from checkins where booth_id='CW'").fetchone()[0]==0
   owner.execute('drop trigger fail_award on point_history')
-  assert scan('CW',key=key)['earnedPoints']==50 and points()==310
-  print('PASS cooldown: repeat QR/aliases blocked for 60min; boundary allowed; different departments/users independent; event rules unchanged; concurrent scans award once; retries and rollback safe')
+  assert scan('CW',key=key)['earnedPoints']==50 and points()==350
+  print('PASS cooldown: repeat QR/aliases blocked for 60min; boundary allowed; different departments/users independent; event scans award 50 points; concurrent scans award once; retries and rollback safe')
 if __name__=='__main__':run_suite(sys.argv[1])
