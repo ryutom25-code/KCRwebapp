@@ -6,21 +6,22 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 function context(files) {
   const elements = new Map();
+  const documentEvents = new Map(), windowEvents = new Map();
   function element() { return { textContent: '', innerHTML: '', style: {}, dataset: {}, disabled: false,
     listeners: {}, addEventListener(name, fn) { this.listeners[name] = fn; },
-    querySelectorAll() { return []; }, querySelector() { return element(); }, appendChild() {} }; }
+    querySelectorAll() { return []; }, querySelector() { return element(); }, appendChild() {}, focus() {} }; }
   const document = { baseURI: 'https://example.test/app/', readyState: 'complete', body: element(),
-    addEventListener() {}, querySelectorAll() { return []; },
+    addEventListener(name, handler) { documentEvents.set(name, handler); }, querySelectorAll() { return []; },
     getElementById(id) { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); } };
   const alerts = [], timers = [];
-  const sandbox = { document, URL, console, crypto: require('node:crypto').webcrypto,
+  const sandbox = { document, URL, console, addEventListener(name, handler) { windowEvents.set(name, handler); }, crypto: require('node:crypto').webcrypto,
     setTimeout(fn) { timers.push(fn); }, clearTimeout() {},
     alert(message) { alerts.push(message); }, confirm() { return true; }, supabaseInitPromise: Promise.resolve() };
   sandbox.window = sandbox;
   sandbox.location = { replace(url) { sandbox.redirect = url; } };
   const ctx = vm.createContext(sandbox);
   for (const file of ['js/common.js', ...files]) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx, { filename: file });
-  return { ctx, elements, alerts, timers, run: code => vm.runInContext(code, ctx) };
+  return { ctx, elements, alerts, timers, documentEvents, windowEvents, run: code => vm.runInContext(code, ctx) };
 }
 function query(result) {
   const q = { then(resolve, reject) { return Promise.resolve(result).then(resolve, reject); } };
@@ -122,7 +123,7 @@ function query(result) {
   assert.equal(backendStaff.calls[0].key, 'staff-session');
 
   // Apostrophes, quotes and HTML in a product never enter an inline handler.
-  t = context(['js/exchange.js']);
+  t = context(['js/qr-camera.js', 'js/exchange.js']);
   const product = { id: "p'1", name: `Kid's "<img src=x onerror=alert(1)>"`, points: 50, image_url: 'javascript:alert(1)' };
   t.ctx.supabaseClient = { from: table => query({ data: table === 'profiles' ? {points:100} : [product] }) };
   t.run("currentUser={id:'u'}");
@@ -177,8 +178,62 @@ function query(result) {
   t.timers[0]();
   assert.equal(t.run('currentQuizIndex'), 1);
 
+  // The signed-in check-in page starts the back camera without a menu or click.
+  t = context(['js/qr-camera.js', 'js/qr.js']);
+  t.ctx.authReady = Promise.resolve({ id: 'u' });
+  let cameraStarts = 0, cameraStops = 0;
+  t.ctx.Html5Qrcode = class {
+    constructor(readerId) { assert.equal(readerId, 'reader'); }
+    start(constraints) {
+      assert.equal(constraints.facingMode, 'environment');
+      cameraStarts++;
+      return Promise.resolve();
+    }
+    stop() { cameraStops++; return Promise.resolve(); }
+    clear() {}
+  };
+  await t.documentEvents.get('DOMContentLoaded')();
+  assert.equal(cameraStarts, 1);
+  assert.match(t.elements.get('statusMessage').textContent, /読み取れます/);
+  await t.windowEvents.get('pagehide')();
+  assert.equal(cameraStops, 1);
+
+  // Closing while the permission prompt is pending releases the old camera before reopening.
+  t = context(['js/qr-camera.js', 'js/exchange.js']);
+  const scanners = [];
+  const scanNotifications = [];
+  let allowCamera;
+  t.ctx.Html5Qrcode = class {
+    constructor() { scanners.push(this); }
+    start(constraints, config, onScan) {
+      assert.equal(constraints.facingMode, 'environment');
+      assert.equal(config.qrbox(390, 220).width, 176);
+      this.scan = onScan;
+      return scanners.length === 1 ? new Promise(resolve => { allowCamera = resolve; }) : Promise.resolve();
+    }
+    stop() { this.stopped = true; return Promise.resolve(); }
+    clear() { this.cleared = true; }
+  };
+  t.ctx.scanNotifications = scanNotifications;
+  t.run("currentProfile={points:100}; onScanSuccess=text=>scanNotifications.push(text);");
+  const pendingCamera = t.run("openScanner({id:'p',name:'景品',points:50})");
+  assert.equal(t.elements.get('scannerModal').style.display, 'flex');
+  const releasing = t.run('stopScanner()');
+  assert.equal(t.elements.get('scannerModal').style.display, 'none');
+  const reopened = t.run("openScanner({id:'p',name:'景品',points:50})");
+  assert.equal(scanners.length, 1);
+  scanners[0].scan('stale');
+  allowCamera();
+  await Promise.all([pendingCamera, releasing, reopened]);
+  assert.equal(scanners.length, 2);
+  assert.ok(scanners[0].stopped && scanners[0].cleared);
+  scanners[1].scan('EXCHANGE_BOOTH');
+  assert.deepEqual(scanNotifications, ['EXCHANGE_BOOTH']);
+  await t.windowEvents.get('pagehide')();
+  assert.ok(scanners[1].stopped && scanners[1].cleared);
+
   // Unknown QR rejection is passed through; there is no local fallback award.
-  t = context(['js/qr.js']);
+  t = context(['js/qr-camera.js', 'js/qr.js']);
   t.ctx.supabaseClient = { rpc: async (name, args) => {
     assert.equal(name,'record_checkin'); assert.equal(args.p_code,'https://unrelated.test');
     return {error:{message:'未登録QR'}};
@@ -187,7 +242,7 @@ function query(result) {
   await assert.rejects(t.run("handleScanSuccess({id:'u'}, 'EXCHANGE_BOOTH')"), /景品交換用/);
 
   // A camera facing the same department should not hammer the API during cooldown.
-  t = context(['js/qr.js']);
+  t = context(['js/qr-camera.js', 'js/qr.js']);
   let scanCalls = 0;
   t.ctx.supabaseClient = {rpc:async()=>{scanCalls++;return {data:{cooldown:false,earnedPoints:50,newPoints:50,departmentName:'理学療法学科',nextAllowedAt:new Date(Date.now()+3600000).toISOString()}};}};
   assert.equal((await t.run("handleScanSuccess({id:'u'}, 'PT')")).earnedPoints,50);

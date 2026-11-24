@@ -29,6 +29,17 @@ const fixtureQuery=table=>{
 };
 window.supabaseClient={from:fixtureQuery,auth:{getUser:async()=>({data:{user:{id:'demo'}}}),signInWithPassword:async()=>({data:{user:{id:'demo'}}}),signUp:async()=>({data:{session:true}}),signOut:async()=>({})},rpc:async(name,args)=>({data:name==='get_quiz_management'?fixtureData.quiz_sets.map(set=>({...set,quizzes:fixtureData.quizzes.filter(q=>q.set_id===set.id)})):name==='answer_quiz'?{isCorrect:args.p_selected_index===0,earnedPoints:10}:name==='exchange_product'?{newPoints:200,productName:'景品'}:{},error:null})};
 const supabaseInitPromise=Promise.resolve();
-window.Html5QrcodeScanner=class{constructor(id){this.id=id;}render(){document.getElementById(this.id).innerHTML='<div class="empty">カメラプレビュー<br><button type="button">カメラを許可</button></div>';}};
-window.Html5Qrcode=class{start(){return Promise.resolve();}stop(){return Promise.resolve();}clear(){}};
+window.Html5Qrcode = class {
+  constructor(id) { this.reader = document.getElementById(id); }
+  start(camera) {
+    this.reader.dataset.facingMode = camera.facingMode;
+    this.reader.innerHTML = '<div class="empty">カメラプレビュー</div>';
+    return Promise.resolve();
+  }
+  stop() { return Promise.resolve(); }
+  clear() {
+    delete this.reader.dataset.facingMode;
+    this.reader.replaceChildren();
+  }
+};
 window.QRCode=class{static CorrectLevel={H:1};constructor(el){el.innerHTML='<svg viewBox="0 0 100 100" width="220" height="220" aria-label="QRプレビュー"><path d="M5 5h30v30H5zM65 5h30v30H65zM5 65h30v30H5zM45 45h20v20H45zM75 75h20v20H75z" fill="#182a46"/></svg>';}};

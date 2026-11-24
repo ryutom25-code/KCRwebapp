@@ -57,10 +57,15 @@ visit('admin/event',390);js("document.querySelector('[data-edit-index]').click()
 assert js("document.getElementById('eventTitle').value")== '学科体験・キャンパスツアー'
 js("document.getElementById('cancelEditBtn').click()")
 assert js("document.getElementById('eventTitle').value")== ''
+visit('qr',390)
+assert js("document.getElementById('reader').dataset.facingMode") == 'environment'
+assert js("document.querySelector('#reader button, #reader select') === null")
 visit('exchange',390);js("document.querySelector('[data-product-index]').click()")
+assert js("document.getElementById('reader').dataset.facingMode") == 'environment'
 assert js("getComputedStyle(document.getElementById('scannerModal')).display")== 'flex'
 js("document.getElementById('closeScannerBtn').click()")
 assert js("getComputedStyle(document.getElementById('scannerModal')).display")== 'none'
+assert js("document.getElementById('reader').dataset.facingMode === undefined")
 visit('login',390);js("document.querySelector('[data-show-password]').click()")
 assert js("document.getElementById('password').type")== 'text'
 visit('admin/qr',390);js("document.querySelector('.preset-btn').click()")

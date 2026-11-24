@@ -1,9 +1,8 @@
 let currentUser = null;
 let currentProfile = null;
 let selectedProduct = null;
-let html5QrcodeScanner = null;
+const exchangeCamera = createQrCamera('reader', 220);
 let exchangeProcessing = false;
-let scannerGeneration = 0;
 let scannerTrigger = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -70,36 +69,18 @@ async function loadProfileAndProducts() {
   });
 }
 
-// 💡 どこからでも絶対に呼べる閉じる処理（モーダルを隠すのが最優先）
 window.stopScanner = function() {
-  scannerGeneration++;
-  scannerTrigger?.focus?.();
   const modal = document.getElementById('scannerModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-
-  // カメラ解体処理（完全にバックグラウンド化）
-  if (html5QrcodeScanner) {
-    const scannerInstance = html5QrcodeScanner;
-    html5QrcodeScanner = null;
-
-    try {
-      scannerInstance.stop().then(() => {
-        try { scannerInstance.clear(); } catch(e){}
-      }).catch(() => {
-        try { scannerInstance.clear(); } catch(e){}
-      });
-    } catch(e) {}
-  }
-
-  const readerEl = document.getElementById('reader');
-  if (readerEl) readerEl.innerHTML = '';
+  if (modal) modal.style.display = 'none';
+  scannerTrigger?.focus();
+  scannerTrigger = null;
+  return exchangeCamera.stop();
 };
 
-// QRカメラ起動
-function openScanner(product) {
-  if (exchangeProcessing || html5QrcodeScanner) return;
+window.addEventListener('pagehide', window.stopScanner);
+
+async function openScanner(product) {
+  if (exchangeProcessing || exchangeCamera.active) return;
   if (!App.hasPendingRequest('exchange:' + product.id) && (currentProfile?.points || 0) < product.points) {
     App.notify(`ポイントが足りません。（必要: ${product.points} PT / 所持: ${currentProfile?.points || 0} PT）`);
     return;
@@ -108,35 +89,13 @@ function openScanner(product) {
   scannerTrigger = document.activeElement;
   selectedProduct = product;
   document.getElementById('targetProductName').textContent = `「${product.name}」（${product.points} PT）`;
-
-  // モーダルを表示
-  const modal = document.getElementById('scannerModal');
-  if (modal) { modal.style.display = 'flex'; document.getElementById('closeScannerBtn')?.focus(); }
-
-  const readerEl = document.getElementById('reader');
-  if (readerEl) readerEl.innerHTML = '';
+  document.getElementById('scannerModal').style.display = 'flex';
+  document.getElementById('closeScannerBtn')?.focus();
 
   try {
-    html5QrcodeScanner = new Html5Qrcode("reader");
-    const scanner = html5QrcodeScanner;
-    const generation = ++scannerGeneration;
-    scanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 220, height: 220 } },
-      text => { if (generation === scannerGeneration) onScanSuccess(text); }
-    ).then(async () => {
-      if (generation !== scannerGeneration) {
-        await scanner.stop();
-        scanner.clear();
-      }
-    }).catch(err => {
-      if (generation !== scannerGeneration) return;
-      console.warn('カメラ起動失敗:', err);
-      App.notify('📷 カメラへのアクセスが許可されていないか、利用できません。');
-      stopScanner();
-    });
-  } catch (err) {
-    console.error('スキャナー初期化エラー:', err);
+    await exchangeCamera.start(onScanSuccess);
+  } catch (error) {
+    App.notify(cameraErrorMessage(error));
     stopScanner();
   }
 }

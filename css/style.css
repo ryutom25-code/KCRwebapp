@@ -999,15 +999,6 @@ td .btn + .btn {
 .scanner video {
   max-width:100%
 }
-.scanner button,.scanner input[type=button] {
-  border:0;
-  background:var(--blue);
-  color:white;
-  padding:12px 16px;
-  border-radius:10px;
-  margin:5px;
-  min-height:44px
-}
 .scanner-intro {
   text-align:center;
   color:var(--muted);

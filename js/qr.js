@@ -1,27 +1,10 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const statusMsg = document.getElementById('statusMessage');
 
-  await supabaseInitPromise;
+  const user = await authReady;
+  if (!user) return;
 
-  // Supabaseクライアントのチェック
-  if (!window.supabaseClient) {
-    if (statusMsg) {
-      statusMsg.style.color = 'red';
-      statusMsg.textContent = 'エラー: Supabaseが初期化されていません。(js/env.jsを確認してください)';
-    }
-    return;
-  }
-
-  // ログインユーザーの確認
-  const { data: { user } } = await window.supabaseClient.auth.getUser();
-  if (!user) {
-    if (statusMsg) {
-      statusMsg.style.color = 'red';
-      statusMsg.textContent = 'ログイン状態が確認できませんでした。';
-    }
-    return;
-  }
-
+  const camera = createQrCamera('reader', 250);
   let isProcessing = false;
 
   // スキャン成功時のイベントハンドラー
@@ -57,13 +40,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // 📷 カメラの起動ロジック
-  const html5QrcodeScanner = new Html5QrcodeScanner(
-    "reader",
-    { fps: 10, qrbox: { width: 250, height: 250 } },
-    /* verbose= */ false
-  );
-  html5QrcodeScanner.render(onScanSuccess, () => {});
+  async function startCamera() {
+    statusMsg.style.color = '';
+    statusMsg.textContent = 'カメラを起動しています…';
+    try {
+      if (await camera.start(onScanSuccess) && !isProcessing) {
+        statusMsg.textContent = 'QRコードを読み取れます。';
+      }
+    } catch (error) {
+      statusMsg.textContent = cameraErrorMessage(error);
+    }
+  }
+
+  window.addEventListener('pagehide', () => camera.stop());
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) startCamera();
+  });
+  await startCamera();
 });
 
 // Cache a known cooldown while the camera stays on the same code. The DB is authoritative.
