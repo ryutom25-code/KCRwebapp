@@ -4,11 +4,14 @@ const fixtureData={
  profiles:[{id:'demo',name:'キャンパス 太郎',school_name:'高田高等学校',grade:'3',points:250}],
  products:[{id:'p1',name:'オリジナルボールペン',points:50,image_url:'/icons/campus.svg'},{id:'p2',name:'キャンパストートバッグ',points:150,image_url:'/icons/campus.svg'},{id:'p3',name:'ロゴ入りノート',points:100,image_url:'/icons/campus.svg'}],
  events:[{id:'e1',title:'秋のオープンキャンパス',event_date:'2026-11-22',is_new:true,updated_at:fixtureNow},{id:'e2',title:'学科体験・キャンパスツアー',event_date:'2026-12-06',is_new:false,updated_at:fixtureNow}],
- exchange_logs_view:[['ネコ',-50],['fesfes',-50],['ネコ',-150],['ネコ',-150],['fesfes',-50],['小',-100]].map(([name,points],i)=>({id:i+1,user_id:'demo',created_at:fixtureNow,product_name:'景品交換: '+name,user_name:'キャンパス 太郎',school_name:'高田高等学校',grade:'3',points})),
+ staff_exchange_logs:[['ネコ',-50],['fesfes',-50],['ネコ',-150],['ネコ',-150],['fesfes',-50],['小',-100]].map(([name,points],i)=>({id:i+1,user_id:'demo',created_at:fixtureNow,product_name:'景品交換: '+name,user_name:'キャンパス 太郎',school_name:'高田高等学校',grade:'3',points})),
  point_history:[{id:1,user_id:'demo',title:'理学療法学科 来校ポイント',points:50,category:'welcome',created_at:fixtureNow},{id:2,user_id:'demo',title:'景品交換: ネコ',points:-50,category:'exchange',created_at:fixtureNow}],
  checkins:[{id:'c1',user_id:'demo',booth_id:'PT',created_at:fixtureNow}],quiz_sets:[{id:'s1',department:'PT',title:'はじめての理学療法クイズ',created_at:fixtureNow}],
  quizzes:[{id:'q1',set_id:'s1',question:'理学療法士がサポートするのは、どんなこと？',options:['身体の動きや機能の回復','建物の設計','食品の生産','道路の工事'],points:10,correct_index:0}],quiz_answers:[],qr_codes:[]
 };
+fixtureData.exchange_logs_view = fixtureData.staff_exchange_logs.map(row => ({
+  ...row, user_id:null, user_name:null, school_name:null, grade:null
+}));
 const fixtureQuery=table=>{
  let filters=[],rangeStart=0,rangeEnd=Infinity,single=false,count=false,head=false,action=null,payload=null,sort=[];
  const q={select(columns,opts={}){count=opts.count;head=opts.head;return q;},eq(k,v){filters.push(row=>String(row[k])===String(v));return q;},in(k,v){filters.push(row=>v.includes(row[k]));return q;},gt(k,v){filters.push(row=>row[k]>v);return q;},neq(k,v){filters.push(row=>row[k]!==v);return q;},gte(){return q;},or(){return q;},order(k,opts={}){sort.push([k,opts.ascending!==false]);return q;},range(a,b){rangeStart=a;rangeEnd=b;return q;},single(){single=true;return q;},maybeSingle(){single=true;return q;},insert(p){action='insert';payload=p;return q;},upsert(p){action='insert';payload=p;return q;},update(p){action='update';payload=p;return q;},delete(){action='delete';return q;},then(resolve,reject){

@@ -62,6 +62,12 @@ const App = {
     if (error) throw new Error(error.message || '処理に失敗しました。');
     return data;
   },
+  async confirmRowChanged(query) {
+    const { data, error } = await query.select('id').maybeSingle();
+    if (error) return error;
+    if (!data) return new Error('対象が見つからないか、操作する権限がありません。');
+    return null;
+  },
   async initAdminPage() {
     try {
       await supabaseInitPromise;

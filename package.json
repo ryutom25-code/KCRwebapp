@@ -1,0 +1,10 @@
+{
+  "name": "kcr-campus",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node --env-file-if-exists=../KCRwebapp.local.env server.mjs",
+    "test": "node tests/regression.cjs && node --test tests/staff_server.test.mjs"
+  }
+}

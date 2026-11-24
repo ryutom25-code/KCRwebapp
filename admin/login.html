@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>スタッフログイン | KCR Campus</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/staff-login.js" defer></script>
+</head>
+<body class="auth-page">
+  <main class="main-content">
+    <section class="card narrow">
+      <h1>スタッフログイン</h1>
+      <p id="staffLoginError" class="form-status" role="status"></p>
+      <form action="/api/staff/login" method="post">
+        <div class="form-group"><label for="staffUser">ユーザー名</label><input id="staffUser" name="username" autocomplete="username" required></div>
+        <div class="form-group"><label for="staffPassword">パスワード</label><input id="staffPassword" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn btn-primary" type="submit">ログイン</button>
+        <a class="btn btn-secondary" href="../home.html">利用者画面へ</a>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

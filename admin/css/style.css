@@ -1,2 +1,5 @@
 /* Shared design system for all campus and management screens. */
 @import url('../../css/style.css');
+
+.staff-logout { margin-top: .75rem; }
+.staff-logout .btn { width: 100%; }

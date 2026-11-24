@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><title>Login-free management regression</title>
+<html lang="ja"><head><meta charset="utf-8"><title>Staff dashboard regression</title>
 <script src="../js/common.js"></script>
 <script>
 const supabaseInitPromise = Promise.resolve();
@@ -24,9 +24,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   await new Promise(resolve=>setTimeout(resolve,0));
   const ok = document.getElementById('todayCheckins').textContent.startsWith('2 ')
     && document.getElementById('todayExchanges').textContent.startsWith('3 ')
-    && tables.join(',')==='checkins,point_history';
+    && tables.join(',')==='checkins,exchange_logs_view';
   document.getElementById('testResult').textContent=ok
-    ? 'PASS: dashboard loaded without login or is_admin RPC'
+    ? 'PASS: dashboard loaded via the staff client'
     : 'FAIL: dashboard did not initialize';
 });
 </script></body></html>

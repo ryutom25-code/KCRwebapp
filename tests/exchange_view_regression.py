@@ -48,6 +48,19 @@ def run_suite(dsn):
         assert read('anon','','select count(*) from public.point_history')[0][0]==6
         print('PASS: reproduced 2-row RLS restriction; fixed to 6 rows for anon and signed-in users; rankings 3/2/1; non-exchange history remains private')
 
+        privacy = ROOT / 'supabase/migrations/202611240001_mask_public_exchange_history.sql'
+        owner.execute(privacy.read_text())
+        for role, user in [('anon', ''), ('authenticated', SECOND)]:
+            rows = read(role, user, """select count(*), count(*) filter (
+                where user_id is not null or user_name is not null or school_name is not null or grade is not null)
+                from public.exchange_logs_view""")
+            assert rows == [(6, 0)]
+            assert read(role, user, """select has_table_privilege(
+                current_user, 'public.exchange_logs_view', 'UPDATE')""") == [(False,)]
+        assert read('anon', '', 'select count(*) from public.point_history') == [(0,)]
+        assert read('authenticated', SECOND, 'select count(*) from public.point_history') == [(2,)]
+        print('PASS: public view omits identity, only the owner can read raw exchange history')
+
 if __name__=='__main__':
     if len(sys.argv)!=2: raise SystemExit(__doc__)
     run_suite(sys.argv[1])

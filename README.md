@@ -4,17 +4,28 @@
 
 ## 起動
 
-ビルド・npmインストールは不要です。
+Node.js 22以上で動作します。
 
 ```sh
-python3 tests/preview_server.py --port 8766
+cp -n .env.example ../KCRwebapp.local.env
+chmod 600 ../KCRwebapp.local.env
 ```
 
-- 利用者画面: http://127.0.0.1:8766/home.html
-- 管理画面: http://127.0.0.1:8766/admin/index.html
-- 新規登録: http://127.0.0.1:8766/signup.html
+`../KCRwebapp.local.env` にSupabaseのプロジェクトURL、公開キー（`SUPABASE_ANON_KEY`）、サーバー用キー（`SUPABASE_SERVICE_ROLE_KEY`）を設定します。公開キーにはPublishableキーまたは旧anonキー、サーバー用キーにはSecretキーまたは旧service_roleキーを使用できます。設定を保存したら `npm start` で起動します。Live Serverで配信される範囲を避けるため、設定ファイルは親フォルダーに置きます。
 
-通常起動では `js/env.js` の実際のSupabaseに接続します。管理画面はログイン不要、利用者のポイント・プロフィール操作はログインが必要です。カメラはHTTPSまたはlocalhostで使用してください。
+- 利用者画面は http://127.0.0.1:8080/home.html
+- 管理画面は http://127.0.0.1:8080/admin/
+- スタッフ共通のユーザー名とパスワードは `STAFF_USERNAME` と `STAFF_PASSWORD` で設定します。例はどちらも `admin` です。公開環境にも同じ値を設定できます。
+
+## 公開環境への切り替え
+
+GitHub Pagesやローカルの静的プレビューから利用者画面を開いた場合、既存のSupabaseプロジェクトの公開キーで接続します。管理画面はNode.js版のURLから開きます。
+
+GitHub PagesではNode.jsを実行できないため、Node.js対応のホスティングで `npm start` を実行します。環境変数に `APP_ORIGIN`（末尾のスラッシュを除いた公開HTTPSのURL）、`HOST=0.0.0.0`、スタッフ資格情報、Supabaseのキーを設定します。ポートはホスティング環境の `PORT` を使用します。Supabase AuthのSite URLとメール確認のリダイレクト許可先も、新しい公開URLに合わせて更新してください。
+
+Renderではリポジトリの `render.yaml` をBlueprintとして使うと、`main` へのpushで自動配備されます。Blueprintの設定画面にSupabaseのURL、公開キー、サーバー用キー、スタッフ共通パスワードを入力します。Renderが発行するHTTPSのURLは起動時に自動取得します。
+
+公開前に [Supabaseの適用手順](supabase/README.md) に従い、Node.js版の配信とDBの権限切り替えを同じ作業で行います。本番のキーはホスティング先の環境変数に設定します。ブラウザの接続設定にはURLと公開キーだけを返し、スタッフ管理操作はサーバー側のキーで処理します。スタッフセッションは8時間で失効し、サーバー再起動でも終了します。
 
 ## 画面と機能
 
@@ -30,13 +41,13 @@ python3 tests/preview_server.py --port 8766
 | 学科情報 | 5学科の案内・クイズへの移動 |
 | 管理ダッシュボード | 当日チェックイン・交換件数 |
 | 来校履歴 | 学科・学校・学年による絞り込み、日時順、編集・削除、CSV |
-| 景品交換履歴 | exchange_logs_viewの全件取得、氏名・学校・景品の検索、CSV、景品ランキング、件数・消費ポイント合計 |
+| 景品交換履歴 | 氏名・学校名・学年付きの一覧、検索、CSV、景品ランキング、件数・消費ポイント合計 |
 | 景品管理 | 登録・編集・削除、画像圧縮・アップロード、画像の拡大表示 |
 | イベント管理 | 登録・編集・削除、開催日・NEW設定 |
 | クイズ管理 | 学科別4問セットの登録、既存セット・問題の編集と削除 |
 | QRコード発行 | 学科・交換ブース・イベントQRの生成と印刷 |
 
-ホームの4メニューは、左上が学科クイズ、右上がミニゲーム、左下が学科説明、右下がポイント交換。ミニゲームは指定により `home.html` へ戻る仮リンクです。QR読み取りボタンはポイントカード内の履歴リンクの上にあります。
+ホームの4メニューは、左上が学科クイズ、右上がミニゲーム、左下が学科説明、右下がポイント交換。ミニゲームは `games.html` で遊べます。QR読み取りボタンはポイントカード内の履歴リンクの上にあります。
 
 ## 構成
 
@@ -45,6 +56,7 @@ python3 tests/preview_server.py --port 8766
 - `js/common.js`: 無害化、CSV、全件取得、RPC、重複送信の識別
 - `js/*.js`: 利用者画面のデータ取得・処理
 - `admin/js/*.js`: 管理機能
+- `server.mjs`: スタッフログイン、管理API、画面配信
 - `supabase/`: 既存DBの前提と移行SQL。詳細は `supabase/README.md`
 
 プロフィール保存・チェックイン・クイズ回答・交換・クイズセット登録は既存のRPCを使用します。これらは対応するDB関数が必要です。QR・交換のエラー解消とクイズ編集・削除の追加に合わせ、第4移行を本番DBへ適用しました。詳細は `supabase/README.md` を参照してください。
@@ -52,7 +64,7 @@ python3 tests/preview_server.py --port 8766
 ## 検証
 
 ```sh
-node tests/regression.cjs
+npm test
 ```
 
 本番に書き込まないUIテスト用プレビュー:

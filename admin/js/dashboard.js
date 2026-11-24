@@ -16,10 +16,9 @@ async function loadTodayStats() {
 
   // 2. 本日の景品交換件数取得
   const { count: exchangeCount, error: exchangeError } = await window.supabaseClient
-    .from('point_history')
+    .from('exchange_logs_view')
     .select('id', { count: 'exact', head: true })
-    .gte('created_at', todayStart.toISOString())
-    .or('category.eq.exchange,points.lt.0');
+    .gte('created_at', todayStart.toISOString());
 
   if (checkinError || exchangeError) {
     document.getElementById('todayCheckins').textContent = '取得失敗';

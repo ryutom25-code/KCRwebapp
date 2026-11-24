@@ -227,13 +227,13 @@ window.saveLogEdit = async function() {
     return;
   }
 
-  const { error } = await window.supabaseClient
+  const error = await App.confirmRowChanged(window.supabaseClient
     .from('checkins')
     .update({
       created_at: new Date(createdAtVal).toISOString(),
       booth_id: boothIdVal || null
     })
-    .eq('id', logId);
+    .eq('id', logId));
 
   if (error) {
     App.notify('更新に失敗しました: ' + error.message);
@@ -251,10 +251,10 @@ window.deleteLog = async function(logId) {
     return;
   }
 
-  const { error } = await window.supabaseClient
+  const error = await App.confirmRowChanged(window.supabaseClient
     .from('checkins')
     .delete()
-    .eq('id', logId);
+    .eq('id', logId));
 
   if (error) {
     App.notify('削除に失敗しました: ' + error.message);

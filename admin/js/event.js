@@ -65,8 +65,7 @@ async function handleSaveEvent(e) {
 
   if (id) {
     // 更新 (UPDATE)
-    const res = await window.supabaseClient.from('events').update(payload).eq('id', id);
-    error = res.error;
+    error = await App.confirmRowChanged(window.supabaseClient.from('events').update(payload).eq('id', id));
   } else {
     // 新規登録 (INSERT)
     const res = await window.supabaseClient.from('events').insert([payload]);
@@ -101,10 +100,10 @@ function editEvent(id, title, event_date, is_new) {
 async function deleteEvent(id, title) {
   if (!await App.confirm(`「${title}」を削除してもよろしいですか？`)) return;
 
-  const { error } = await window.supabaseClient
+  const error = await App.confirmRowChanged(window.supabaseClient
     .from('events')
     .delete()
-    .eq('id', id);
+    .eq('id', id));
 
   if (error) {
     App.notify('削除に失敗しました: ' + error.message);

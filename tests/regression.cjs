@@ -24,7 +24,7 @@ function context(files) {
 }
 function query(result) {
   const q = { then(resolve, reject) { return Promise.resolve(result).then(resolve, reject); } };
-  for (const method of ['select', 'eq', 'order', 'single', 'gte', 'or']) q[method] = () => q;
+  for (const method of ['select', 'eq', 'order', 'single', 'maybeSingle', 'gte', 'or']) q[method] = () => q;
   return q;
 }
 (async () => {
@@ -52,7 +52,7 @@ function query(result) {
   const failed = await t.run(`App.fetchAllResult(() => ({range() { return Promise.resolve(++page === 1 ? {data:[1]} : {error: new Error('page failed')}); }}))`);
   assert.equal(failed.data, null);
   assert.equal(failed.error.message, 'page failed');
-  // Management initialization must not require a session or an is_admin RPC.
+  // Staff page scripts use the Node.js session rather than Supabase Auth.
   t.ctx.supabaseClient = { auth: { getUser: () => { throw new Error('Auth must not be called'); } },
     rpc: () => { throw new Error('is_admin must not be called'); } };
   assert.equal(await t.run('App.initAdminPage()'), true);
@@ -65,6 +65,61 @@ function query(result) {
     assert.ok(source.includes('App.initAdminPage()'),file);
     assert.ok(!/requireAdmin|is_admin|auth\.getUser/.test(source),file);
   }
+
+  // A static preview can serve participant pages while staff still require the backend.
+  function bootstrap(area, response, locationUrl = 'https://campus.test') {
+    const setup = context([]);
+    const calls = [];
+    setup.ctx.document.body.dataset.area = area;
+    setup.ctx.location = new URL(locationUrl);
+    setup.ctx.supabase = { createClient(url, key, options) {
+      calls.push({ url, key, options });
+      return {};
+    } };
+    setup.ctx.fetch = async route => {
+      assert.equal(route, '/api/config');
+      return response;
+    };
+    setup.run(fs.readFileSync(path.join(root, 'js/env.js'), 'utf8'));
+    return { ready: setup.run('supabaseInitPromise'), calls };
+  }
+
+  const staticResponse = new Response('Not found', { status: 404 });
+  const participant = bootstrap('campus', staticResponse);
+  await participant.ready;
+  assert.equal(participant.calls.length, 1);
+  const publicClaims = JSON.parse(Buffer.from(participant.calls[0].key.split('.')[1], 'base64url'));
+  assert.equal(publicClaims.role, 'anon');
+
+  const staticWithHtmlFallback = bootstrap('campus', new Response('<html></html>', {
+    headers: { 'Content-Type': 'text/html' }
+  }));
+  await staticWithHtmlFallback.ready;
+  assert.equal(staticWithHtmlFallback.calls[0].url, participant.calls[0].url);
+  const localFile = bootstrap('campus', undefined, 'file:///tmp/KCRwebapp/home.html');
+  await localFile.ready;
+  assert.equal(localFile.calls[0].url, participant.calls[0].url);
+
+  const staticStaff = bootstrap('admin', staticResponse);
+  await assert.rejects(staticStaff.ready, /Node\.js版/);
+  assert.equal(staticStaff.calls.length, 0);
+  const liveServerStaff = bootstrap('admin', staticResponse, 'http://127.0.0.1:5500/admin/index.html');
+  await assert.rejects(liveServerStaff.ready, /127\.0\.0\.1:8080\/admin\//);
+  assert.equal(liveServerStaff.calls.length, 0);
+
+  const failedBackend = bootstrap('campus', new Response('Unavailable', { status: 503 }));
+  await assert.rejects(failedBackend.ready, /サーバーの設定/);
+  assert.equal(failedBackend.calls.length, 0);
+
+  const configured = { url: 'https://example.supabase.co', publicKey: 'sb_publishable_configured' };
+  const backendParticipant = bootstrap('campus', Response.json(configured));
+  await backendParticipant.ready;
+  assert.equal(backendParticipant.calls[0].url, configured.url);
+  assert.equal(backendParticipant.calls[0].key, configured.publicKey);
+  const backendStaff = bootstrap('admin', Response.json(configured));
+  await backendStaff.ready;
+  assert.equal(backendStaff.calls[0].url, 'https://campus.test/api/staff');
+  assert.equal(backendStaff.calls[0].key, 'staff-session');
 
   // Apostrophes, quotes and HTML in a product never enter an inline handler.
   t = context(['js/exchange.js']);
@@ -143,7 +198,7 @@ function query(result) {
   await t.run("handleScanSuccess({id:'other'}, 'PT')");
   assert.equal(scanCalls,3);
 
-  // The exchange view is the only data source; no category column or FK is required.
+  // The staff exchange view provides named rows without a PostgREST relationship.
   t = context(['admin/js/exchange.js']);
   const history = [
     {id:1,user_id:'u',product_name:'景品交換: A',points:-50,created_at:'2026-11-17T01:00:00Z'},
@@ -153,19 +208,33 @@ function query(result) {
     {id:5,user_id:'u',product_name:'景品交換: <img src=x onerror=alert(1)>',points:-50,created_at:'2026-11-17T05:00:00Z'}
   ];
   history[0].user_name = "Kid's <script>";
-  history[0].school_name = '学校';
+  history[0].school_name = '=学校';
+  history[0].grade = '1';
   t.ctx.supabaseClient = {from(table) {
-    assert.equal(table,'exchange_logs_view');
+    assert.equal(table,'staff_exchange_logs');
     const rows = history;
-    const q = {select(columns) { assert.ok(!columns.includes('profiles')); return q; },
+    const q = {select(columns) { assert.equal(columns,'id, created_at, product_name, points, user_name, school_name, grade'); return q; },
       order() { return q; }, range(start,end) { return Promise.resolve({data:rows.slice(start,end+1)}); }};
     return q;
   }};
   await t.run('loadExchangeLogs()');
   assert.equal(t.elements.get('recordCount').textContent,'5 件');
-  assert.match(t.elements.get('exchangeTableBody').innerHTML,/Kid&#39;s &lt;script&gt;/);
-  assert.match(t.elements.get('exchangeTableBody').innerHTML,/名称未設定/);
-  assert.equal(t.run('currentLogs[0].school_name'),'学校');
+  assert.match(t.elements.get('exchangeTableBody').innerHTML, /Kid&#39;s &lt;script&gt;/);
+  assert.match(t.elements.get('exchangeTableBody').innerHTML, /学校/);
+  t.elements.get('exchangeSearch').value = 'kid';
+  t.run('renderExchangeLogs()');
+  assert.equal(t.elements.get('recordCount').textContent, '1 件');
+  assert.equal(t.run('buildExchangeRanking(allExchangeLogs)[0].count'), 2);
+  let exportedCsv;
+  t.ctx.Blob = class { constructor(parts) { exportedCsv = parts.join(''); } };
+  t.ctx.URL = { createObjectURL: () => 'blob:test', revokeObjectURL() {} };
+  t.ctx.document.createElement = () => ({ click() {} });
+  t.ctx.document.body.removeChild = () => {};
+  t.run('exportToCsv()');
+  assert.match(exportedCsv, /日時,氏名,学校名,学年,交換景品,消費PT/);
+  assert.match(exportedCsv, /"Kid's <script>","'=学校","1"/);
+  t.elements.get('exchangeSearch').value = '';
+  t.run('renderExchangeLogs()');
   const ranks = t.run('buildExchangeRanking(currentLogs)');
   assert.equal(ranks[0].name,'A'); assert.equal(ranks[0].count,2); assert.equal(ranks[0].rank,1);
   assert.equal(ranks[1].name,'B'); assert.equal(ranks[1].rank,1); assert.equal(ranks[2].rank,3);
@@ -186,12 +255,24 @@ function query(result) {
   assert.equal(suppliedRanks[1].name,'fesfes'); assert.equal(suppliedRanks[1].count,2);
   assert.equal(suppliedRanks[2].name,'小'); assert.equal(suppliedRanks[2].count,1);
 
+  // A write that affects zero rows must not report success.
+  t = context(['admin/js/product.js']);
+  t.ctx.mutation = query({ data: null, error: null });
+  t.ctx.mutation.delete = () => t.ctx.mutation;
+  t.ctx.supabaseClient = { from: () => t.ctx.mutation };
+  await t.run("deleteProduct('missing', '景品')");
+  assert.match(t.alerts.at(-1), /対象が見つからない/);
+  t.ctx.mutation.maybeSingle = async () => ({ data: { id: 'p' }, error: null });
+  t.run('loadProducts = async () => {}');
+  await t.run("deleteProduct('p', '景品')");
+  assert.match(t.alerts.at(-1), /商品を削除しました/);
+
   // Dashboard counts checkins, not positive quiz point history.
   t = context(['admin/js/dashboard.js']);
   const tables = [];
   t.ctx.supabaseClient = { from(table) { tables.push(table); return query({count:table==='checkins'?2:3}); } };
   await t.run('loadTodayStats()');
-  assert.deepEqual(tables, ['checkins','point_history']);
+  assert.deepEqual(tables, ['checkins','exchange_logs_view']);
   assert.match(t.elements.get('todayCheckins').innerHTML, /^2 /);
-  console.log('PASS: syntax, escaping, CSV, pagination, login-free management, exchange, quiz, QR and dashboard regressions');
+  console.log('PASS: syntax, escaping, CSV, pagination, staff exchange, quiz, QR and dashboard regressions');
 })().catch(error => { console.error(error); process.exitCode=1; });

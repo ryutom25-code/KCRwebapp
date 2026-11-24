@@ -34,16 +34,15 @@ async function loadExchangeLogs() {
   allExchangeLogs = [];
   if (countEl) countEl.textContent = '取得中';
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="5">読み込み中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">読み込み中...</td></tr>';
   }
 
   const ranking = document.getElementById('exchangeRanking');
   if (ranking) ranking.textContent = '読み込み中...';
 
-  // The view already contains participant details; no relationship lookup is needed.
   const { data: logs, error } = await App.fetchAllResult(() => window.supabaseClient
-    .from('exchange_logs_view')
-    .select('id, user_id, created_at, product_name, points, user_name, school_name, grade')
+    .from('staff_exchange_logs')
+    .select('id, created_at, product_name, points, user_name, school_name, grade')
     .order('created_at', { ascending: sortOrder === 'asc' }).order('id', { ascending: sortOrder === 'asc' }));
 
   if (generation !== exchangeLoadGeneration) return;
@@ -52,7 +51,7 @@ async function loadExchangeLogs() {
     if (ranking) ranking.textContent = 'ランキングを取得できませんでした。';
     console.error('データ取得エラー:', error);
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="5">エラーが発生しました: ${App.escapeHtml(error.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6">エラーが発生しました: ${App.escapeHtml(error.message)}</td></tr>`;
     }
     return;
   }
@@ -70,7 +69,9 @@ function renderExchangeLogs() {
   const tbody = document.getElementById('exchangeTableBody');
   const countEl = document.getElementById('recordCount');
   const search = (document.getElementById('exchangeSearch')?.value || '').trim().toLocaleLowerCase();
-  currentLogs = allExchangeLogs.filter(log => !search || [log.user_name, log.school_name, exchangeProductName(log)].some(value => String(value || '').toLocaleLowerCase().includes(search)));
+  currentLogs = allExchangeLogs.filter(log => !search ||
+    [log.user_name, log.school_name, log.grade, exchangeProductName(log)]
+      .some(value => String(value ?? '').toLocaleLowerCase().includes(search)));
 
   if (countEl) {
     countEl.textContent = `${currentLogs.length} 件`;
@@ -78,7 +79,7 @@ function renderExchangeLogs() {
 
   if (!currentLogs || currentLogs.length === 0) {
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="5">交換履歴はありません。</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6">交換履歴はありません。</td></tr>';
     }
     return;
   }
@@ -86,29 +87,30 @@ function renderExchangeLogs() {
   // テーブル要素の生成
   if (tbody) {
     tbody.innerHTML = currentLogs.map(log => {
-      const date = new Date(log.created_at);
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      const dateStr = `${date.getFullYear()}/${month}/${day} ${hours}:${minutes}`;
-
-      const userName = log.user_name || '名称未設定';
-      const schoolName = log.school_name || '未設定';
       const productName = exchangeProductName(log);
       const pointsUsed = Math.abs(log.points || 0);
 
       return `
         <tr>
-          <td>${dateStr}</td>
-          <td>${App.escapeHtml(userName)}</td>
-          <td>${App.escapeHtml(schoolName)}</td>
+          <td>${formatExchangeDate(log.created_at)}</td>
+          <td>${App.escapeHtml(log.user_name || '—')}</td>
+          <td>${App.escapeHtml(log.school_name || '—')}</td>
+          <td>${App.escapeHtml(log.grade ?? '—')}</td>
           <td>${App.escapeHtml(productName)}</td>
           <td class="point-amount negative">-${pointsUsed} PT</td>
         </tr>
       `;
     }).join('');
   }
+}
+
+function formatExchangeDate(createdAt) {
+  const date = new Date(createdAt);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${date.getFullYear()}/${month}/${day} ${hours}:${minutes}`;
 }
 
 // Aggregate by the saved product name, stripping the historical display prefix.
@@ -154,22 +156,11 @@ function exportToCsv() {
 
   // BOM（文字化け防止）
   let csvContent = '\uFEFF';
-  csvContent += '日時,氏名,出身学校,交換景品,消費PT\n';
+  csvContent += '日時,氏名,学校名,学年,交換景品,消費PT\r\n';
 
   currentLogs.forEach(log => {
-    const date = new Date(log.created_at);
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const dateStr = `${date.getFullYear()}/${month}/${day} ${hours}:${minutes}`;
-
-    const userName = log.user_name || '名称未設定';
-    const schoolName = log.school_name || '未設定';
-    const productName = exchangeProductName(log);
-    const pointsUsed = Math.abs(log.points || 0);
-
-    csvContent += [dateStr, userName, schoolName, productName].map(App.csvCell).join(',') + `,-${pointsUsed}\r\n`;
+    const cells = [formatExchangeDate(log.created_at), log.user_name, log.school_name, log.grade, exchangeProductName(log)];
+    csvContent += cells.map(App.csvCell).join(',') + `,-${Math.abs(log.points || 0)}\r\n`;
   });
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

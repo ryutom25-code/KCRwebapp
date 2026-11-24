@@ -128,7 +128,7 @@ async function handleSaveProduct(e) {
 
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.jpg`;
 
-      const { data: uploadData, error: uploadError } = await window.supabaseClient
+      const { error: uploadError } = await window.supabaseClient
         .storage
         .from('product-images')
         .upload(fileName, compressedFile, {
@@ -140,12 +140,7 @@ async function handleSaveProduct(e) {
         return;
       }
 
-      const { data: urlData } = window.supabaseClient
-        .storage
-        .from('product-images')
-        .getPublicUrl(fileName);
-
-      imageUrl = urlData.publicUrl;
+      imageUrl = window.productImagesUrl + encodeURIComponent(fileName);
     }
 
     const payload = {
@@ -158,8 +153,7 @@ async function handleSaveProduct(e) {
     let error = null;
 
     if (id) {
-      const res = await window.supabaseClient.from('products').update(payload).eq('id', id);
-      error = res.error;
+      error = await App.confirmRowChanged(window.supabaseClient.from('products').update(payload).eq('id', id));
     } else {
       const res = await window.supabaseClient.from('products').insert([payload]);
       error = res.error;
@@ -205,7 +199,7 @@ function editProduct(prod) {
 async function deleteProduct(id, name) {
   if (!await App.confirm(`「${name}」を削除してもよろしいですか？`)) return;
 
-  const { error } = await window.supabaseClient.from('products').delete().eq('id', id);
+  const error = await App.confirmRowChanged(window.supabaseClient.from('products').delete().eq('id', id));
 
   if (error) {
     App.notify('削除に失敗しました: ' + error.message);
