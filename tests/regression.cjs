@@ -9,7 +9,7 @@ function context(files) {
   const documentEvents = new Map(), windowEvents = new Map();
   function element() { return { textContent: '', innerHTML: '', style: {}, dataset: {}, disabled: false,
     listeners: {}, addEventListener(name, fn) { this.listeners[name] = fn; },
-    querySelectorAll() { return []; }, querySelector() { return element(); }, appendChild() {}, focus() {} }; }
+    querySelectorAll() { return []; }, querySelector() { return element(); }, appendChild() {}, replaceChildren() { this.innerHTML = ''; }, focus() {} }; }
   const document = { baseURI: 'https://example.test/app/', readyState: 'complete', body: element(),
     addEventListener(name, handler) { documentEvents.set(name, handler); }, querySelectorAll() { return []; },
     getElementById(id) { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); } };
@@ -272,6 +272,28 @@ function query(result) {
   assert.equal(t.elements.get('resultCard').style.display, 'block');
   assert.equal(t.elements.get('boothLabel').textContent, '日本語のイベント');
   assert.equal(t.elements.get('qrDescription').textContent, 'イベント参加で50ポイント');
+
+  // A failed registration hides and clears the previous QR before the request settles.
+  const qrPreview = t.elements.get('qrcode');
+  qrPreview.innerHTML = 'previous QR';
+  let finishRegistration;
+  t.ctx.supabaseClient.from = () => ({
+    upsert() { return new Promise(resolve => { finishRegistration = resolve; }); }
+  });
+  let prints = 0;
+  t.ctx.print = () => { prints++; };
+  t.elements.get('boothInput').value = 'next-event';
+  const failedIssuance = t.elements.get('customQrBtn').listeners.click();
+  assert.equal(t.elements.get('resultCard').style.display, 'none');
+  assert.equal(qrPreview.innerHTML, '');
+  assert.equal(t.elements.get('boothLabel').textContent, '');
+  while (!finishRegistration) await Promise.resolve();
+  finishRegistration({ error: new Error('登録エラー') });
+  await failedIssuance;
+  t.elements.get('printBtn').listeners.click();
+  assert.equal(prints, 0);
+  assert.equal(t.elements.get('resultCard').style.display, 'none');
+  assert.match(t.alerts.at(-1), /登録エラー/);
 
   // A camera facing the same department should not hammer the API during cooldown.
   t = context(['js/qr-camera.js', 'js/qr.js']);

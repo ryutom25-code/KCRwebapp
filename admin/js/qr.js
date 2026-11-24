@@ -8,9 +8,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const customQrBtn = document.getElementById('customQrBtn');
   const printBtn = document.getElementById('printBtn');
 
-  // QRコード生成処理
-  async function generateQR(qrDataStr, label, eventName) {
+  let issuance = 0;
+
+  async function generateQR(getDetails) {
+    const request = ++issuance;
+    resultCard.style.display = 'none';
+    boothLabel.textContent = '';
+    qrDescription.textContent = '';
+    qrContainer.replaceChildren();
+
     try {
+      const { code: qrDataStr, label, eventName } = await getDetails();
+      if (request !== issuance) return;
       if (qrDataStr !== 'EXCHANGE_BOOTH') {
         const event = qrDataStr.startsWith('event:');
         const target = qrDataStr.replace(/^welcome:/, '');
@@ -23,26 +32,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, { onConflict: 'code' });
         if (error) throw error;
       }
+      if (request !== issuance) return;
+
+      new QRCode(qrContainer, {
+        text: qrDataStr,
+        width: 220,
+        height: 220,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      boothLabel.textContent = label;
+      qrDescription.textContent = qrDataStr === 'EXCHANGE_BOOTH' ? '景品交換の確認用'
+        : qrDataStr.startsWith('event:') ? 'イベント参加で50ポイント'
+        : 'チェックインで50ポイント';
+      resultCard.style.display = 'block';
     } catch (error) {
-      App.notify('QRコードを登録できません: ' + error.message);
-      return;
+      if (request !== issuance) return;
+      qrContainer.replaceChildren();
+      App.notify('QRコードを発行できません: ' + error.message);
     }
-    resultCard.style.display = 'block';
-    boothLabel.textContent = label;
-    qrDescription.textContent = qrDataStr === 'EXCHANGE_BOOTH' ? '景品交換の確認用'
-      : qrDataStr.startsWith('event:') ? 'イベント参加で50ポイント'
-      : 'チェックインで50ポイント';
-
-    qrContainer.innerHTML = ''; // クリア
-
-    new QRCode(qrContainer, {
-      text: qrDataStr,
-      width: 220,
-      height: 220,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
-    });
   }
 
   // 学科プリセットボタンのイベント設定
@@ -50,24 +59,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.addEventListener('click', () => {
       const qrData = btn.getAttribute('data-qr');
       const label = btn.getAttribute('data-label');
-      generateQR(qrData, label);
+      generateQR(() => ({ code: qrData, label }));
     });
   });
 
   // 任意入力（イベント名など）作成ボタン
   customQrBtn.addEventListener('click', async () => {
     const name = boothInput.value.trim().replace(/^event:/, '').trim();
-    if (!name) {
-      App.notify('イベント名を入力してください。');
-      return;
-    }
-
     customQrBtn.disabled = true;
     try {
-      const code = await customEventCode(name);
-      await generateQR(code, `イベントQR（${name}）`, name);
-    } catch (error) {
-      App.notify('QRコードを作成できません: ' + error.message);
+      await generateQR(async () => {
+        if (!name) throw new Error('イベント名を入力してください。');
+        return { code: await customEventCode(name), label: `イベントQR（${name}）`, eventName: name };
+      });
     } finally {
       customQrBtn.disabled = false;
     }
@@ -75,18 +79,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 印刷ボタン
   printBtn.addEventListener('click', () => {
-    window.print();
+    if (resultCard.style.display === 'block') window.print();
   });
 
   const eventId = new URLSearchParams(location.search).get('eventId');
   if (eventId) {
-    const { data: event, error } = await window.supabaseClient
-      .from('events').select('id,title').eq('id', eventId).maybeSingle();
-    if (error || !event) {
-      App.notify('イベントを取得できません。イベント管理から開き直してください。');
-      return;
-    }
-    await generateQR('event:event-id:' + event.id, event.title, event.title);
+    await generateQR(async () => {
+      const { data: event, error } = await window.supabaseClient
+        .from('events').select('id,title').eq('id', eventId).maybeSingle();
+      if (error || !event) throw new Error('イベントを取得できません。イベント管理から開き直してください。');
+      return { code: 'event:event-id:' + event.id, label: event.title, eventName: event.title };
+    });
   }
 });
 
