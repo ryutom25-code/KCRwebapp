@@ -20,10 +20,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 function showQuizCreateView(creating) {
   document.getElementById('quizListView').hidden = creating;
   document.getElementById('quizCreateView').hidden = !creating;
-  document.getElementById('quizPageTitle').textContent = creating ? '新しいクイズをつくる。' : 'クイズを管理する。';
+  document.getElementById('quizPageTitle').textContent = creating ? '新規クイズ作成' : 'クイズ管理';
   document.getElementById('quizPageDescription').textContent = creating
-    ? '学科を選んで、4つの問題と正解を登録します。'
-    : '作成済みのクイズを確認・編集できます。新しいセットは「新規作成」から追加してください。';
+    ? '対象学科と4問の問題・正解を入力してください。'
+    : '作成済みクイズの編集・削除、新規セットの作成。';
   document.getElementById(creating ? 'setTitleInput' : 'newQuizBtn').focus({ preventScroll: true });
   document.getElementById('main').scrollIntoView({ block: 'start' });
 }
@@ -34,7 +34,7 @@ function renderQuestionForms() {
   if(!container)return;
   container.innerHTML=Array.from({length:4},(_,index)=>{
     const i=index+1;
-    return `<section class="card"><span class="eyebrow">QUESTION 0${i}</span><h2>問題 ${i}</h2><div class="form-group"><label for="q${i}_text">問題文</label><textarea id="q${i}_text" required placeholder="問題文を入力してください"></textarea></div><fieldset><legend>選択肢</legend>${Array.from({length:4},(_,n)=>`<div class="form-group"><label for="q${i}_opt${n}">選択肢 ${n+1}</label><input id="q${i}_opt${n}" required placeholder="選択肢 ${n+1}"></div>`).join('')}</fieldset><div class="form-group"><label for="q${i}_correct">正解の選択肢</label><select id="q${i}_correct">${Array.from({length:4},(_,n)=>`<option value="${n}">選択肢 ${n+1}</option>`).join('')}</select></div></section>`;
+    return `<section class="card"><h2>問題 ${i}</h2><div class="form-group"><label for="q${i}_text">問題文</label><textarea id="q${i}_text" required placeholder="問題文を入力してください"></textarea></div><fieldset><legend>選択肢</legend>${Array.from({length:4},(_,n)=>`<div class="form-group"><label for="q${i}_opt${n}">選択肢 ${n+1}</label><input id="q${i}_opt${n}" required placeholder="選択肢 ${n+1}"></div>`).join('')}</fieldset><div class="form-group"><label for="q${i}_correct">正解の選択肢</label><select id="q${i}_correct">${Array.from({length:4},(_,n)=>`<option value="${n}">選択肢 ${n+1}</option>`).join('')}</select></div></section>`;
   }).join('');
 }
 
@@ -69,7 +69,7 @@ async function handleCreateFullQuiz(e) {
   document.getElementById('backToQuizList').disabled = true;
   try {
     await App.rpc('create_quiz_set', { p_department: dept, p_title: title, p_quizzes: quizzesToInsert });
-    App.notify(`🎉 「${title}」と問題4問を一括登録しました！`);
+    App.notify(`「${title}」と問題4問を登録しました。`);
     e.target.reset();
     await loadManagedQuizzes();
     showQuizCreateView(false);

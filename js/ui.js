@@ -20,10 +20,13 @@ const UI = (() => {
   function init() {
     const admin=document.body.dataset.area==='admin', current=document.body.dataset.page;
     const links=admin?adminLinks:userLinks, prefix=admin?'../':'';
-    const brand=`<a class="brand" href="${admin?'index':'home'}.html"><img src="${prefix}icons/campus.svg" width="38" height="38" alt=""><span>KCR CAMPUS<small>${admin?'MANAGEMENT WORKSPACE':'OPEN CAMPUS PASSPORT'}</small></span></a>`;
+    const brand=`<a class="brand" href="${admin?'index':'home'}.html"><img src="${prefix}icons/campus.svg" width="38" height="38" alt=""><span>KCR CAMPUS<small>${admin?'管理画面':'OPEN CAMPUS PASSPORT'}</small></span></a>`;
     const link=([id,label],mobile=false)=>`<a href="${id}.html" class="${mobile?'':'nav-item '}${current===id?'active':''}" ${current===id?'aria-current="page"':''}>${icon(id)}<span>${label}</span></a>`;
     const mobile=admin?links.slice(0,3):[userLinks[0],userLinks[1],userLinks[2],userLinks[3],userLinks[6]];
-    document.getElementById('appNavigation').innerHTML=`<aside class="sidebar">${brand}<p class="nav-caption">${admin?'WORKSPACE':'MY CAMPUS'}</p><nav aria-label="メインナビゲーション">${links.map(x=>link(x)).join('')}</nav><div class="sidebar-note"><strong>${admin?'キャンパス運営を、スムーズに。':'ひとつの体験が、未来につながる。'}</strong>${admin?'来校から景品交換まで、今日の運営をサポートします。':'体験・クイズに参加して、ポイントをためよう。'}<a href="${admin?'../home.html':'https://www.kcr.ac.jp/contact/'}">${admin?'利用者画面へ ↗':'お問い合わせ ↗'}</a></div></aside><header class="mobile-header">${brand}<span>${admin?'MANAGEMENT':'OPEN CAMPUS'}</span></header><nav class="mobile-nav" aria-label="モバイルナビゲーション">${mobile.map(x=>link(x,true)).join('')}${admin?`<details><summary>${icon('more')}<span>メニュー</span></summary><div class="mobile-menu">${links.map(([id,label])=>`<a href="${id}.html">${label}</a>`).join('')}<a href="../home.html">利用者画面へ ↗</a></div></details>`:''}</nav>`;
+    const sidebarNote = admin
+      ? '<div class="sidebar-note"><a href="../home.html">利用者画面へ ↗</a></div>'
+      : '<div class="sidebar-note"><strong>ひとつの体験が、未来につながる。</strong>体験・クイズに参加して、ポイントをためよう。<a href="https://www.kcr.ac.jp/contact/">お問い合わせ ↗</a></div>';
+    document.getElementById('appNavigation').innerHTML=`<aside class="sidebar">${brand}<p class="nav-caption">${admin?'管理メニュー':'MY CAMPUS'}</p><nav aria-label="メインナビゲーション">${links.map(x=>link(x)).join('')}</nav>${sidebarNote}</aside><header class="mobile-header">${brand}<span>${admin?'管理画面':'OPEN CAMPUS'}</span></header><nav class="mobile-nav" aria-label="モバイルナビゲーション">${mobile.map(x=>link(x,true)).join('')}${admin?`<details><summary>${icon('more')}<span>メニュー</span></summary><div class="mobile-menu">${links.map(([id,label])=>`<a href="${id}.html">${label}</a>`).join('')}<a href="../home.html">利用者画面へ ↗</a></div></details>`:''}</nav>`;
     document.querySelectorAll('[data-show-password]').forEach(input=>input.addEventListener('change',()=>{document.getElementById('password').type=input.checked?'text':'password';}));
     document.addEventListener('keydown',event=>{
       if(event.key!=='Escape')return;

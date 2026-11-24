@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#165dff">
+  <title>ミニゲーム | KCR Campus</title>
+  <link rel="icon" href="icons/campus.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/games.css">
+  <script src="js/ui.js" defer></script>
+  <script src="js/games.js" defer></script>
+</head>
+<body data-area="campus" data-page="games">
+  <a class="skip-link" href="#main">本文へスキップ</a>
+  <div id="appNavigation"></div>
+  <main id="main" class="main-content game-page" tabindex="-1">
+    <a id="gamesHome" class="text-link" href="home.html">← ホーム</a>
+    <section id="gameMenu" aria-labelledby="gamesTitle">
+      <header class="page-heading">
+        <h1 id="gamesTitle">ミニゲーム</h1>
+        <p>好きなゲームを選んで、自己ベストに挑戦。</p>
+      </header>
+      <div class="game-grid">
+        <button class="game-choice" type="button" data-game="memory">
+          <span class="game-symbol" aria-hidden="true">🃏</span><strong>神経衰弱</strong><span>12枚のカードから同じ絵柄を探す</span>
+        </button>
+        <button class="game-choice" type="button" data-game="mole">
+          <span class="game-symbol" aria-hidden="true">🐹</span><strong>もぐらたたき</strong><span>30秒で何匹タップできるか挑戦</span>
+        </button>
+        <button class="game-choice" type="button" data-game="slide">
+          <span class="game-symbol" aria-hidden="true">🧩</span><strong>スライドパズル</strong><span>8枚のパネルを数字の順に並べる</span>
+        </button>
+        <button class="game-choice" type="button" data-game="reaction">
+          <span class="game-symbol" aria-hidden="true">⚡</span><strong>反射神経ゲーム</strong><span>合図が出たらすぐにタップ</span>
+        </button>
+      </div>
+    </section>
+    <section id="gamePlay" class="card game-play" aria-labelledby="gameTitle" hidden>
+      <button id="gamesBack" class="btn btn-secondary" type="button">← ゲーム一覧</button>
+      <h1 id="gameTitle" tabindex="-1"></h1>
+      <p id="gameRules"></p>
+      <div class="game-stats"><span id="gameScore"></span><span id="gameBest"></span></div>
+      <div id="gameBoard" class="game-board"></div>
+      <p id="gameStatus" role="status"></p>
+      <button id="gameStart" class="btn btn-primary" type="button">スタート</button>
+    </section>
+  </main>
+</body>
+</html>
