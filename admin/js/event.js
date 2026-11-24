@@ -30,7 +30,7 @@ async function loadEvents() {
     return;
   }
 
-  listContainer.innerHTML = events.map((ev, index) => `<article class="admin-list-item"><div class="item-description"><h3>${ev.is_new ? '<span class="badge">NEW</span>' : ''}${App.escapeHtml(ev.title)}</h3><p>${App.escapeHtml(ev.event_date)}</p></div><div class="item-actions"><button type="button" class="btn-edit" data-edit-index="${index}">編集</button><button type="button" class="btn-delete" data-delete-index="${index}">削除</button></div></article>`).join('');
+  listContainer.innerHTML = events.map((ev, index) => `<article class="admin-list-item"><div class="item-description"><h3>${ev.is_new ? '<span class="badge">NEW</span>' : ''}${App.escapeHtml(ev.title)}</h3><p>${App.escapeHtml(ev.event_date)}</p></div><div class="item-actions"><a class="btn-edit" href="qr.html?eventId=${encodeURIComponent(ev.id)}">QRを発行</a><button type="button" class="btn-edit" data-edit-index="${index}">編集</button><button type="button" class="btn-delete" data-delete-index="${index}">削除</button></div></article>`).join('');
   listContainer.querySelectorAll('[data-edit-index]').forEach(button => button.addEventListener('click', () => {
     const ev = events[Number(button.dataset.editIndex)];
     editEvent(ev.id, ev.title, ev.event_date, ev.is_new);

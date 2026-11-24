@@ -14,7 +14,7 @@ function context(files) {
     addEventListener(name, handler) { documentEvents.set(name, handler); }, querySelectorAll() { return []; },
     getElementById(id) { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); } };
   const alerts = [], timers = [];
-  const sandbox = { document, URL, console, addEventListener(name, handler) { windowEvents.set(name, handler); }, crypto: require('node:crypto').webcrypto,
+  const sandbox = { document, URL, URLSearchParams, TextEncoder, console, addEventListener(name, handler) { windowEvents.set(name, handler); }, crypto: require('node:crypto').webcrypto,
     setTimeout(fn) { timers.push(fn); }, clearTimeout() {},
     alert(message) { alerts.push(message); }, confirm() { return true; }, supabaseInitPromise: Promise.resolve() };
   sandbox.window = sandbox;
@@ -251,10 +251,25 @@ function query(result) {
   t.ctx.QRCode = class { static CorrectLevel = { H: 1 }; };
   await t.documentEvents.get('DOMContentLoaded')();
   t.elements.get('boothInput').value = '公開イベント';
-  t.elements.get('customQrBtn').listeners.click();
-  assert.equal(issuedCodes[0].code, 'event:公開イベント');
+  await t.elements.get('customQrBtn').listeners.click();
+  assert.match(issuedCodes[0].code, /^event:text:[0-9a-f]{64}$/);
+  assert.equal(issuedCodes[0].department_name, '公開イベント');
+  assert.equal(await t.run("customEventCode('公開イベント')"), issuedCodes[0].code);
+  assert.equal(await t.run("customEventCode('OpenCampus')"), 'event:OpenCampus');
   assert.equal(issuedCodes[0].category, 'event');
   assert.equal(issuedCodes[0].points, 50);
+
+  t = context(['admin/js/qr.js']);
+  t.ctx.location.search = '?eventId=e1';
+  t.ctx.supabaseClient = { from(table) {
+    if (table === 'events') return query({ data: { id: 'e1', title: '日本語のイベント' } });
+    return { upsert(record) { issuedCodes.push(record); return Promise.resolve({ error: null }); } };
+  } };
+  t.ctx.QRCode = class { static CorrectLevel = { H: 1 }; };
+  await t.documentEvents.get('DOMContentLoaded')();
+  assert.equal(issuedCodes[1].code, 'event:event-id:e1');
+  assert.equal(issuedCodes[1].department_name, '日本語のイベント');
+  assert.equal(t.elements.get('resultCard').style.display, 'block');
 
   // A camera facing the same department should not hammer the API during cooldown.
   t = context(['js/qr-camera.js', 'js/qr.js']);
