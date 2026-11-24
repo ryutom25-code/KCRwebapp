@@ -49,7 +49,7 @@ const restMethods = {
   checkins: [...readMethods, 'PATCH', 'DELETE'],
   events: [...readMethods, 'POST', 'PATCH', 'DELETE'],
   products: [...readMethods, 'POST', 'PATCH', 'DELETE'],
-  qr_codes: ['POST']
+  qr_codes: [...readMethods, 'POST']
 };
 const staffFunctions = new Set(['create_quiz_set', 'get_quiz_management', 'update_quiz_set', 'update_quiz', 'delete_quiz_set', 'delete_quiz']);
 const types = {

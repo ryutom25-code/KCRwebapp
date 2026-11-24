@@ -270,6 +270,8 @@ function query(result) {
   assert.equal(issuedCodes[1].code, 'event:event-id:e1');
   assert.equal(issuedCodes[1].department_name, '日本語のイベント');
   assert.equal(t.elements.get('resultCard').style.display, 'block');
+  assert.equal(t.elements.get('boothLabel').textContent, '日本語のイベント');
+  assert.equal(t.elements.get('qrDescription').textContent, 'イベント参加で50ポイント');
 
   // A camera facing the same department should not hammer the API during cooldown.
   t = context(['js/qr-camera.js', 'js/qr.js']);
@@ -351,6 +353,33 @@ function query(result) {
   t.run('loadProducts = async () => {}');
   await t.run("deleteProduct('p', '景品')");
   assert.match(t.alerts.at(-1), /商品を削除しました/);
+
+  // Registered event QR codes resolve to their names in the check-in table and CSV.
+  t = context(['admin/js/checkin.js']);
+  const eventCode = 'event:event-id:e1';
+  const datasets = {
+    qr_codes: [{ code: eventCode, department_name: '春のイベント' }],
+    checkins: [{ id: 'log', user_id: 'u', booth_id: eventCode, created_at: '2026-11-24T00:00:00Z' }],
+    profiles: [{ id: 'u', name: '参加者' }]
+  };
+  t.ctx.supabaseClient = { from(table) {
+    return { select() { return this; }, order() { return this; },
+      async range(from, to) { return { data: datasets[table].slice(from, to + 1) }; } };
+  } };
+  await t.run('loadRegisteredBooths()');
+  await t.run('loadCheckinLogs()');
+  const checkinTable = t.elements.get('checkinTableBody').innerHTML;
+  assert.match(checkinTable, /春のイベント/);
+  assert.ok(!checkinTable.includes(eventCode));
+  assert.equal(t.run("boothName('welcome:PT')"), '理学療法学科');
+  assert.equal(t.run("boothName('event:秋のイベント')"), '秋のイベント');
+  t.ctx.Blob = class { constructor(parts) { exportedCsv = parts.join(''); } };
+  t.ctx.URL = { createObjectURL: () => 'blob:test', revokeObjectURL() {} };
+  t.ctx.document.createElement = () => ({ click() {}, setAttribute() {} });
+  t.ctx.document.body.removeChild = () => {};
+  t.run('exportToCsv()');
+  assert.match(exportedCsv, /春のイベント/);
+  assert.ok(!exportedCsv.includes(eventCode));
 
   // Dashboard counts checkins, not positive quiz point history.
   t = context(['admin/js/dashboard.js']);

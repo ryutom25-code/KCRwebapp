@@ -50,6 +50,7 @@ test('HTTPS deployment accepts the configured shared login and keeps the service
   assert.equal(response.headers.get('location'), '/admin/login.html');
   assert.equal((await call('/admin/login.html')).status, 200);
   assert.equal((await call(endpoint)).status, 401);
+  assert.equal((await call('/api/staff/rest/v1/qr_codes?select=code,department_name')).status, 401);
   assert.equal((await call('/.env')).status, 404);
   assert.equal((await call('/server.mjs')).status, 404);
   assert.deepEqual(await (await call('/api/config')).json(), { url: supabaseUrl, publicKey: publishable });
@@ -93,6 +94,9 @@ test('HTTPS deployment accepts the configured shared login and keeps the service
   });
   assert.equal(response.status, 200);
   assert.equal(requests[2].body, '{}');
+  response = await call('/api/staff/rest/v1/qr_codes?select=code,department_name', { headers: session });
+  assert.equal(response.status, 200);
+  assert.equal(requests[3].url, '/rest/v1/qr_codes?select=code,department_name');
 
   response = await call('/api/staff/logout', { method: 'POST', headers: { ...session, origin: publicOrigin } });
   assert.match(response.headers.get('set-cookie'), /Max-Age=0; Secure/);

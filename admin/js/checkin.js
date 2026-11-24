@@ -1,5 +1,7 @@
 let checkinLoadGeneration = 0;
 let editTrigger = null;
+const registeredBooths = new Map();
+const boothFilterGroups = new Map();
 let currentFilteredData = []; // 現在画面に表示されている抽出データを保持
 
 // 💡 booth_id (略称コード) と 表示名の対応表
@@ -12,8 +14,26 @@ const BOOTH_NAMES = {
   // ※ 実際に使っている識別コードを追加・変更してください
 };
 
+function boothName(code) {
+  if (!code) return '未設定';
+  const departmentCode = code.replace(/^welcome:/, '');
+  if (Object.hasOwn(BOOTH_NAMES, departmentCode)) return BOOTH_NAMES[departmentCode];
+  if (registeredBooths.has(code)) return registeredBooths.get(code);
+  if (/^event:(event-id|text):/.test(code)) return '名称未登録のイベント';
+  return code.startsWith('event:') ? code.slice(6) || '名称未登録のイベント' : code;
+}
+
+async function loadRegisteredBooths() {
+  const rows = await App.fetchAll(() => window.supabaseClient
+    .from('qr_codes').select('code,department_name').order('code'));
+  for (const row of rows) registeredBooths.set(row.code, row.department_name);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   if (!await App.initAdminPage()) return;
+
+  try { await loadRegisteredBooths(); }
+  catch (error) { App.notify('学科・イベント名を取得できません: ' + error.message); }
 
   // 1. フィルターの選択肢をセット
   try { await initFilterOptions(); }
@@ -43,14 +63,14 @@ async function initFilterOptions() {
   if (logs) {
     const boothIds = [...new Set(logs.map(l => l.booth_id).filter(Boolean))];
     const deptSelect = document.getElementById('filterDepartment');
-    deptSelect.innerHTML = '<option value="">すべての学科</option>';
-    boothIds.forEach(id => {
-      const opt = document.createElement('option');
-      opt.value = id;
-      // BOOTH_NAMES にあれば正式名称、なければコードそのまま(IS, PT等)を表示
-      opt.textContent = BOOTH_NAMES[id] || id;
-      deptSelect.appendChild(opt);
-    });
+    deptSelect.innerHTML = '<option value="">すべての学科・イベント</option>';
+    boothFilterGroups.clear();
+    for (const id of boothIds) {
+      const name = boothName(id);
+      if (!boothFilterGroups.has(name)) boothFilterGroups.set(name, []);
+      boothFilterGroups.get(name).push(id);
+    }
+    for (const name of boothFilterGroups.keys()) deptSelect.add(new Option(name, name));
   }
 
   // 2. profiles から出身学校名および学年を抽出
@@ -89,7 +109,7 @@ async function initFilterOptions() {
 // データの読み込み＆結合処理
 async function loadCheckinLogs() {
   const generation = ++checkinLoadGeneration;
-  const deptVal = document.getElementById('filterDepartment').value; // IS, PT 等のコード
+  const deptVal = document.getElementById('filterDepartment').value;
   const schoolVal = document.getElementById('filterSchool').value;
   const gradeVal = document.getElementById('filterGrade').value;
   const sortVal = document.getElementById('sortDate').value;
@@ -101,7 +121,8 @@ async function loadCheckinLogs() {
       .select('*')
       .order('created_at', { ascending: sortVal === 'asc' }).order('id', { ascending: sortVal === 'asc' });
 
-    if (deptVal) query = query.eq('booth_id', deptVal);
+    const boothIds = boothFilterGroups.get(deptVal);
+    if (boothIds) query = query.in('booth_id', boothIds);
 
     return query;
   };
@@ -167,7 +188,7 @@ async function loadCheckinLogs() {
     const prof = log.profile || {};
 
     const rawName = prof.name || prof.user_name || prof.full_name;
-    const deptName = BOOTH_NAMES[log.booth_id] || log.booth_id;
+    const deptName = boothName(log.booth_id);
 
     const nameStr = rawName ? App.escapeHtml(rawName) : '<span>未設定</span>';
     const schoolStr = prof.school_name ? App.escapeHtml(prof.school_name) : '<span>未設定</span>';
@@ -203,7 +224,13 @@ window.openEditModal = function(logId) {
   const isoStr = dt.toISOString().slice(0, 16);
 
   document.getElementById('editCreatedAt').value = isoStr;
-  document.getElementById('editTitle').value = targetLog.booth_id || '';
+  const boothSelect = document.getElementById('editTitle');
+  const boothIds = new Set([...Object.keys(BOOTH_NAMES), ...registeredBooths.keys(), targetLog.booth_id]);
+  boothSelect.replaceChildren(new Option('未設定', ''));
+  for (const code of boothIds) {
+    if (code) boothSelect.add(new Option(boothName(code), code));
+  }
+  boothSelect.value = targetLog.booth_id || '';
 
   const modal = document.getElementById('editModal');
   if (modal) { modal.style.display = 'flex'; document.getElementById('editCreatedAt').focus(); }
@@ -281,14 +308,14 @@ function exportToCsv() {
     return;
   }
 
-  const headers = ['日時', '氏名', '出身学校', '学年', '体験学科/ブース'];
+  const headers = ['日時', '氏名', '出身学校', '学年', '学科・イベント'];
 
   const rows = currentFilteredData.map(log => {
     const dt = new Date(log.created_at);
     const dateStr = `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
     const prof = log.profile || {};
     const rawName = prof.name || prof.user_name || prof.full_name;
-    const deptName = BOOTH_NAMES[log.booth_id] || log.booth_id || '未設定';
+    const deptName = boothName(log.booth_id);
 
     return [dateStr, rawName || '未設定', prof.school_name || '未設定',
       (prof.grade !== null && prof.grade !== undefined && prof.grade !== '') ? prof.grade + '年' : '未設定',

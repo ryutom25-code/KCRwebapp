@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!await App.initAdminPage()) return;
   const resultCard = document.getElementById('resultCard');
   const boothLabel = document.getElementById('boothLabel');
-  const boothIdText = document.getElementById('boothIdText');
+  const qrDescription = document.getElementById('qrDescription');
   const qrContainer = document.getElementById('qrcode');
   const boothInput = document.getElementById('boothInput');
   const customQrBtn = document.getElementById('customQrBtn');
@@ -29,7 +29,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     resultCard.style.display = 'block';
     boothLabel.textContent = label;
-    boothIdText.textContent = 'データ: ' + qrDataStr;
+    qrDescription.textContent = qrDataStr === 'EXCHANGE_BOOTH' ? '景品交換の確認用'
+      : qrDataStr.startsWith('event:') ? 'イベント参加で50ポイント'
+      : 'チェックインで50ポイント';
 
     qrContainer.innerHTML = ''; // クリア
 
